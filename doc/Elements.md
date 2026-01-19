@@ -24,3 +24,16 @@ Responsive grid layouts with automatic positioning using Masonry and imagesLoade
 ```
 
 [Full Masonry documentation](MasonryElement.md)
+
+## Sticksy
+
+Sticky/fixed position elements that stay visible while scrolling.
+
+```php
+<?= $this->element('Brammo/Content.sticksy', ['selector' => '.sidebar']) ?>
+
+// With top spacing
+<?= $this->element('Brammo/Content.sticksy', ['selector' => '.sidebar', 'topSpacing' => 20]) ?>
+```
+
+[Full Sticksy documentation](SticksyElement.md)

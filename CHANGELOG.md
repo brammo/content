@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - imagesLoaded integration for proper image handling
   - Percentage-based positioning for responsive layouts
   - Automatic CDN resource loading
+- **Sticksy Element** - Sticky/fixed position elements while scrolling
+  - Configurable top spacing
+  - Custom options support
+  - Automatic CDN resource loading
 
 ## [1.0.0] - 2025-12-29
 
