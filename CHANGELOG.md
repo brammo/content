@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Bootstrap 5 theme styling
   - Configurable CSS selector
   - Automatic CDN resource loading
+- **Masonry Element** - Responsive grid layouts with automatic positioning
+  - imagesLoaded integration for proper image handling
+  - Percentage-based positioning for responsive layouts
+  - Automatic CDN resource loading
 
 ## [1.0.0] - 2025-12-29
 

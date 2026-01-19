@@ -14,3 +14,13 @@ Enhanced select boxes with searchable dropdowns using Bootstrap 5 styling.
 ```
 
 [Full Select2 documentation](Select2Element.md)
+
+## Masonry
+
+Responsive grid layouts with automatic positioning using Masonry and imagesLoaded.
+
+```php
+<?= $this->element('Brammo/Content.masonry', ['selector' => '.grid']) ?>
+```
+
+[Full Masonry documentation](MasonryElement.md)
