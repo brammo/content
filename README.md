@@ -20,6 +20,7 @@ A [CakePHP](https://cakephp.org/) plugin for content manipulation including imag
   - [Select2](/doc/Select2Element.md)
   - [Masonry](/doc/MasonryElement.md)
   - [Sticksy](/doc/SticksyElement.md)
+  - [Lightgallery](/doc/LightgalleryElement.md)
 - [Testing](/doc/Testing.md)
 - [Changelog](/CHANGELOG.md)
 

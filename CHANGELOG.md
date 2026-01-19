@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Configurable top spacing
   - Custom options support
   - Automatic CDN resource loading
+- **Lightgallery Element** - Image and video lightbox galleries
+  - Zoom and thumbnail plugins included
+  - Configurable container and item selectors
+  - Automatic CDN resource loading
 
 ## [1.0.0] - 2025-12-29
 

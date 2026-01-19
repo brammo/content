@@ -37,3 +37,16 @@ Sticky/fixed position elements that stay visible while scrolling.
 ```
 
 [Full Sticksy documentation](SticksyElement.md)
+
+## Lightgallery
+
+Beautiful image and video lightbox galleries with zoom and thumbnails.
+
+```php
+<?= $this->element('Brammo/Content.lightgallery', [
+    'selector' => '.gallery',
+    'itemSelector' => '.gallery-item',
+]) ?>
+```
+
+[Full Lightgallery documentation](LightgalleryElement.md)
