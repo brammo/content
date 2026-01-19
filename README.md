@@ -16,6 +16,8 @@ A [CakePHP](https://cakephp.org/) plugin for content manipulation including imag
   - [DateHelper](/doc/DateHelper.md)
   - [ImageHelper](/doc/ImageHelper.md)
   - [VideoHelper](/doc/VideoHelper.md)
+- [Elements](/doc/Elements.md)
+  - [Select2](/doc/Select2Element.md)
 - [Testing](/doc/Testing.md)
 - [Changelog](/CHANGELOG.md)
 
