@@ -49,3 +49,19 @@ $thumbnail = $this->Video->image('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
 ```
 
 [Full VideoHelper documentation](VideoHelper.md)
+
+## FlagHelper
+
+Display country flags using ISO 3166-1 alpha-2 country codes.
+
+```php
+$this->loadHelper('Brammo/Content.Flag');
+
+echo $this->Flag->icon('us');
+// Returns: <i class="flag-icon flag-icon-us"></i>
+
+echo $this->Flag->icon('de');
+// Returns: <i class="flag-icon flag-icon-de"></i>
+```
+
+[Full FlagHelper documentation](FlagHelper.md)
