@@ -5,10 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2026-01-24
 
 ### Added
 
+- **FlagHelper** - Display country flags using lipis/flag-icons CDN
+  - `icon()` - Generate flag icon HTML from ISO 3166-1 alpha-2 country code
+  - Automatic CSS loading with SRI integrity
 - **Select2 Element** - Enhanced select boxes with searchable dropdowns
   - Bootstrap 5 theme styling
   - Configurable CSS selector
