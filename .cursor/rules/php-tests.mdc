@@ -1,0 +1,15 @@
+---
+description: PHPUnit conventions for Brammo Content
+globs: tests/**/*.php
+alwaysApply: false
+---
+
+# Tests
+
+- Extend `Cake\TestSuite\TestCase`; namespace `Brammo\Content\Test\TestCase\...`.
+- Helpers: `new View()` then `new XHelper($view)` in `setUp()`.
+- Elements: `$this->View->element('Brammo/Content.{name}', $vars)`; assert `fetch('script')` / `fetch('css')`.
+- Protected logic: `ReflectionClass` + `setAccessible(true)` (see `ImageHelperTest`).
+- `@var` docblocks must reference `Brammo\Content\View\Helper\*`, not `App\View\Helper\*`.
+
+Bootstrap uses `tests/test_app/webroot/` as `WWW_ROOT`.

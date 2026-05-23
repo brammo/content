@@ -1,0 +1,14 @@
+---
+description: Brammo Content plugin scope and quality gates
+alwaysApply: true
+---
+
+# Brammo Content (CakePHP plugin)
+
+- Plugin name: `Brammo/Content`. Helpers + `templates/element/` only.
+- Namespaces: `Brammo\Content\`, tests `Brammo\Content\Test\`.
+- `ContentPlugin` keeps bootstrap, routes, middleware, services, and events disabled.
+
+Before finishing work: `composer test`, `composer cs-check`, `composer analyse`.
+
+Full context: see root `AGENTS.md`.

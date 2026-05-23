@@ -1,8 +1,10 @@
 # Copilot Instructions for Brammo Content Plugin
 
+> For Cursor and other agents, see [AGENTS.md](../AGENTS.md) (canonical instructions).
+
 ## Project Overview
 
-CakePHP 5.x plugin providing view helpers for content manipulation: image processing, date formatting, video embedding, and country flags. Uses PHP 8.1+ with strict typing.
+CakePHP 5.x plugin providing view helpers for content manipulation: image processing, date formatting, video embedding, and country flags. Uses PHP 8.2+ with strict typing.
 
 ## Architecture
 
@@ -13,7 +15,7 @@ CakePHP 5.x plugin providing view helpers for content manipulation: image proces
   - `DateHelper` - Date formatting using CakePHP's i18n (Chronos)
   - `VideoHelper` - Video embedding via dereuromark/media-embed
   - `FlagHelper` - Country flag icons via lipis/flag-icons CDN
-- `templates/element/` - Reusable elements for JS libraries (lightgallery, masonry, select2)
+- `templates/element/` - Reusable elements for JS libraries (lightgallery, masonry, select2, sticksy)
 
 ### Key Patterns
 
@@ -30,7 +32,7 @@ protected array $_defaultConfig = [
 - Crop: `/thumb/{width}x{height}c/original/path.jpg`
 - Fit: `/thumb/{width}x{height}f/original/path.jpg`
 
-**Driver Auto-Detection** - ImageHelper auto-detects best available driver: imagick → vips → gd
+**Driver Auto-Detection** - ImageHelper auto-detects best available driver: **vips → imagick → gd**
 
 ## Code Conventions
 
@@ -63,13 +65,15 @@ protected function setUp(): void
 }
 ```
 
-Use reflection to test protected methods when needed (see [ImageHelperTest.php](tests/TestCase/View/Helper/ImageHelperTest.php#L130-L140)).
+Use reflection to test protected methods when needed (see [ImageHelperTest.php](../tests/TestCase/View/Helper/ImageHelperTest.php)).
+
+Bootstrap uses `tests/test_app/webroot/` as `WWW_ROOT`.
 
 ## Dependencies
 
 - **intervention/image** + **intervention/image-driver-vips** - Image processing
 - **dereuromark/media-embed** - Video URL parsing and embedding
-- **cakephp/cakephp** ^5.0 - Framework
+- **cakephp/cakephp** ^5.3 - Framework
 
 ## Adding New Helpers
 

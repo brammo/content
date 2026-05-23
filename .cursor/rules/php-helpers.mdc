@@ -1,0 +1,22 @@
+---
+description: View helper conventions for Brammo Content
+globs: src/View/Helper/**/*.php
+alwaysApply: false
+---
+
+# View helpers
+
+- Extend `Cake\View\Helper`; use `protected array $_defaultConfig`.
+- `declare(strict_types=1);` and full type hints on public API.
+
+## ImageHelper
+
+- Cache under `tempFolder` (default `/thumb`); suffix `c` = crop, `f` = fit.
+- Auto driver order: **vips → imagick → gd**.
+- On missing file or error, return the original path string.
+- Uses `WWW_ROOT` and writes cache files under webroot.
+
+## FlagHelper / VideoHelper
+
+- FlagHelper: append CDN CSS in `initialize()`; validate ISO2 in `icon()`.
+- VideoHelper: `MediaEmbed` in `initialize()`; invalid URLs → empty string or null.
