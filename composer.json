@@ -18,7 +18,7 @@
     "version": "1.1.0",
     "prefer-stable": true,
     "require": {
-        "php": ">=8.1",
+        "php": ">=8.2",
         "cakephp/cakephp": "^5.3",
         "dereuromark/media-embed": "^0.6.4",
         "intervention/image": "^3.11",
@@ -43,20 +43,22 @@
     "scripts": {
         "check": [
             "@test",
-            "@cs-check"
+            "@cs-check",
+            "@analyse"
         ],
         "analyse": [
             "@stan",
             "@psalm"
          ],
-        "cs-check": "phpcs --colors -p src tests",
+        "cs-check": "phpcs --colors -p -n src tests",
         "cs-fix": "phpcbf --colors -p src tests",
         "test": "phpunit --colors=always",
         "stan": "phpstan analyse",
         "stan-baseline": "phpstan analyse --generate-baseline",
         "psalm": "psalm --show-info=false",
         "psalm-baseline": "psalm --set-baseline=psalm-baseline.xml",
-        "coverage-test": "phpunit --stderr --coverage-clover=clover.xml"
+        "coverage-test": "phpunit --stderr --coverage-clover=clover.xml",
+        "generate-test-image": "php tests/bin/generate-test-image.php"
     },
     "config": {
         "allow-plugins": {
