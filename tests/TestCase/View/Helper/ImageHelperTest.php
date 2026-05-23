@@ -60,6 +60,37 @@ class ImageHelperTest extends TestCase
     }
 
     /**
+     * Test resize processes an existing image and returns cache path
+     *
+     * @return void
+     */
+    public function testResizeProcessesExistingImage(): void
+    {
+        if (!extension_loaded('gd') && !extension_loaded('imagick') && !$this->isVipsAvailableForTest()) {
+            $this->markTestSkipped('No image processing extension available.');
+        }
+
+        $view = new View();
+        $helper = new ImageHelper($view, ['driver' => 'gd', 'tempFolder' => '/thumb-test']);
+        $sourcePath = '/images/test.png';
+        $expectedCache = '/thumb-test/50x50/images/test.png';
+
+        $result = $helper->resize($sourcePath, 50, 50);
+        $this->assertSame($expectedCache, $result);
+
+        $cacheFullPath = WWW_ROOT . ltrim($expectedCache, '/');
+        $this->assertFileExists($cacheFullPath);
+
+        $cachedAgain = $helper->resize($sourcePath, 50, 50);
+        $this->assertSame($expectedCache, $cachedAgain);
+
+        if (is_file($cacheFullPath)) {
+            unlink($cacheFullPath);
+        }
+        $this->removeEmptyCacheDirs(dirname($cacheFullPath));
+    }
+
+    /**
      * Test resize returns original path when source file doesn't exist
      *
      * @return void
@@ -120,10 +151,10 @@ class ImageHelperTest extends TestCase
     {
         $info = $this->Image->getDriverInfo();
 
-        if ($info['available']['imagick']) {
-            $this->assertSame('imagick', $info['driver']);
-        } elseif ($info['available']['vips']) {
+        if ($info['available']['vips']) {
             $this->assertSame('vips', $info['driver']);
+        } elseif ($info['available']['imagick']) {
+            $this->assertSame('imagick', $info['driver']);
         } elseif ($info['available']['gd']) {
             $this->assertSame('gd', $info['driver']);
         }
@@ -223,23 +254,50 @@ class ImageHelperTest extends TestCase
     }
 
     /**
-     * Test driver detection priority: imagick > vips > gd
+     * Test driver detection priority: vips > imagick > gd
      *
      * @return void
      */
     public function testDetectDriverPriority(): void
     {
         $reflection = new \ReflectionClass($this->Image);
-        $method = $reflection->getMethod('detectDriver');
+        $method = $reflection->getMethod('isVipsAvailable');
         $method->setAccessible(true);
+        $vipsAvailable = $method->invoke($this->Image);
 
-        $result = $method->invoke($this->Image);
+        $detectMethod = $reflection->getMethod('detectDriver');
+        $detectMethod->setAccessible(true);
+        $result = $detectMethod->invoke($this->Image);
 
-        // Result should be one of the valid drivers
         $this->assertContains($result, ['imagick', 'vips', 'gd']);
 
-        if (extension_loaded('imagick')) {
+        if ($vipsAvailable) {
+            $this->assertSame('vips', $result);
+        } elseif (extension_loaded('imagick')) {
             $this->assertSame('imagick', $result);
+        }
+    }
+
+    /**
+     * @return bool
+     */
+    private function isVipsAvailableForTest(): bool
+    {
+        return extension_loaded('vips')
+            && class_exists('Intervention\\Image\\Drivers\\Vips\\Driver');
+    }
+
+    /**
+     * @param string $path
+     * @return void
+     */
+    private function removeEmptyCacheDirs(string $path): void
+    {
+        while (str_starts_with($path, WWW_ROOT) && $path !== WWW_ROOT && is_dir($path)) {
+            if (!@rmdir($path)) {
+                break;
+            }
+            $path = dirname($path);
         }
     }
 }

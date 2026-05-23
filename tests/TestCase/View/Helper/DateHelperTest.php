@@ -18,7 +18,7 @@ class DateHelperTest extends TestCase
     /**
      * Test subject
      *
-     * @var \App\View\Helper\DateHelper
+     * @var \Brammo\Content\View\Helper\DateHelper
      */
     protected DateHelper $DateHelper;
 

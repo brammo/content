@@ -16,7 +16,7 @@ class VideoHelperTest extends TestCase
     /**
      * Test subject
      *
-     * @var \App\View\Helper\VideoHelper
+     * @var \Brammo\Content\View\Helper\VideoHelper
      */
     protected VideoHelper $VideoHelper;
 
