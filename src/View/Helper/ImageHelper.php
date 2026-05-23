@@ -326,16 +326,13 @@ class ImageHelper extends Helper
             );
         }
 
-        /** @var DriverInterface $driver */
-        $driver = new $vipsDriverClass();
-
-        return $driver;
+        return new $vipsDriverClass();
     }
 
     /**
      * Detect available image driver
      *
-     * Priority: imagick > vips > gd
+     * Priority: vips > imagick > gd
      *
      * @return string Driver name ('imagick', 'vips', or 'gd')
      */
