@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Brammo\Content\View\Helper;
 
-use Cake\Event\EventInterface;
 use Cake\View\Helper;
 
 /**
  * Flag Helper
  *
  * Uses lipis/flag-icons for displaying country flags.
+ *
+ * @extends \Cake\View\Helper<\Cake\View\View>
  * @see https://github.com/lipis/flag-icons
  */
 class FlagHelper extends Helper

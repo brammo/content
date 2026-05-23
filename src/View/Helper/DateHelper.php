@@ -10,6 +10,8 @@ use Cake\I18n\DateTime;
 
 /**
  * Date helper
+ *
+ * @extends \Cake\View\Helper<\Cake\View\View>
  */
 class DateHelper extends Helper
 {
@@ -40,7 +42,7 @@ class DateHelper extends Helper
      * @param \Cake\I18n\DateTime|string $endDate End date
      * @return string Formatted text
      */
-    public function range($startDate, $endDate): string
+    public function range(Date|DateTime|string $startDate, Date|DateTime|string $endDate): string
     {
         $startDate = new DateTime($startDate);
         $endDate = new DateTime($endDate);

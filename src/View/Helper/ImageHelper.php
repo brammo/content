@@ -17,6 +17,7 @@ use Intervention\Image\Interfaces\ImageInterface;
  * Provides image manipulation methods (resize, crop, fit) with automatic caching.
  * Supports GD, ImageMagick, and libvips via Intervention Image library.
  *
+ * @extends \Cake\View\Helper<\Cake\View\View>
  * @property \Cake\View\Helper\UrlHelper $Url
  */
 class ImageHelper extends Helper

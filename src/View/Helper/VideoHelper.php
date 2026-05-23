@@ -11,6 +11,8 @@ use MediaEmbed\MediaEmbed;
  * Video Helper
  *
  * Uses dereuromark/media-embed library for parsing and embedding videos.
+ *
+ * @extends \Cake\View\Helper<\Cake\View\View>
  */
 class VideoHelper extends Helper
 {
