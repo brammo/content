@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-05-23
+
+- GitHub Actions CI workflow (PHPUnit, code style, PHPStan, and Psalm on PHP 8.2 and 8.3)
+- Minimal `tests/test_app/` TestApp for integration tests that need `WWW_ROOT`
+- `composer generate-test-image` script to regenerate the ImageHelper test fixture
+- `AGENTS.md` contributor guide for plugin layout, conventions, and quality checks
+
+### Changed
+
+- Minimum PHP version is now 8.2 (was 8.1)
+- **ImageHelper** auto driver selection priority is **vips → imagick → gd** (aligned with documentation)
+- `composer check` now runs static analysis (`composer analyse`) in addition to tests and code style
+
+### Documentation
+
+- README Quick Start includes FlagHelper
+- Security notes for template elements (inline JS selectors must be static/trusted)
+- Expanded testing documentation and ImageHelper loading examples
+
 ## [1.1.0] - 2026-01-24
 
 ### Added
@@ -28,7 +47,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Zoom and thumbnail plugins included
   - Configurable container and item selectors
   - Automatic CDN resource loading
-
 ## [1.0.0] - 2025-12-29
 
 ### Added
