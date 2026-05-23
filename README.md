@@ -6,7 +6,7 @@ A [CakePHP](https://cakephp.org/) plugin for content manipulation including imag
 
 ## Requirements
 
-- PHP 8.1+
+- PHP 8.2+
 - CakePHP 5.0+
 
 ## Documentation
@@ -38,6 +38,7 @@ $this->addPlugin('Brammo/Content');
 $this->loadHelper('Brammo/Content.Date');
 $this->loadHelper('Brammo/Content.Image');
 $this->loadHelper('Brammo/Content.Video');
+$this->loadHelper('Brammo/Content.Flag');
 ```
 
 ## License

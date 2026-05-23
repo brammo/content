@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- PHP 8.1+
+- PHP 8.2+
 - CakePHP 5.0+
 
 ## Install via Composer

@@ -12,14 +12,14 @@ public function initialize(): void
     parent::initialize();
     
     // Load individual helpers
-    $this->loadHelper('Brammo/Image.Image');
+    $this->loadHelper('Brammo/Content.Image');
 }
 ```
 
 Load with custom configuration
 
 ```php
-$this->loadHelper('Brammo/Image.Image', [
+$this->loadHelper('Brammo/Content.Image', [
     'tempFolder' => '/cache/images',  // Cache folder (relative to webroot)
     'driver' => 'auto',               // 'auto', 'imagick', 'vips', or 'gd'
     'backgroundColor' => '#ffffff',   // Background color for fit method
@@ -31,7 +31,7 @@ $this->loadHelper('Brammo/Image.Image', [
 | Option | Default | Description |
 |--------|---------|-------------|
 | `tempFolder` | `/thumb` | Directory to store cached images (relative to webroot) |
-| `driver` | `auto` | Image processing driver. Auto-detection priority: imagick > vips > gd |
+| `driver` | `auto` | Image processing driver. Auto-detection priority: vips > imagick > gd |
 | `backgroundColor` | `#ffffff` | Background fill color for the `fit` method (hex code) |
 
 ### Methods
@@ -76,7 +76,7 @@ echo $this->Image->fit('/images/photo.jpg', 300, 200);
 // Returns: /thumb/300x200f/images/photo.jpg
 
 // Custom background color (configured in helper options)
-$this->loadHelper('Brammo/Image.Image', [
+$this->loadHelper('Brammo/Content.Image', [
     'backgroundColor' => '#000000',  // Black background
 ]);
 ```

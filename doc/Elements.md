@@ -2,6 +2,10 @@
 
 The Content plugin provides reusable view elements for common JavaScript functionality.
 
+## Security
+
+Elements accept CSS selectors (e.g. `selector`, `itemSelector`) that are output into inline JavaScript. Pass **static, trusted selectors only** (e.g. `.gallery`, `#sidebar`). Do not pass raw user input — that can lead to XSS.
+
 ## Select2
 
 Enhanced select boxes with searchable dropdowns using Bootstrap 5 styling.
