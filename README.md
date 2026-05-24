@@ -43,7 +43,6 @@ $this->loadHelper('Brammo/Content.Image');
 $this->loadHelper('Brammo/Content.Video');
 $this->loadHelper('Brammo/Content.Flag');
 $this->loadHelper('Brammo/Content.Seo');
-$this->loadHelper('Brammo/Content.Flag');
 ```
 
 ## License
