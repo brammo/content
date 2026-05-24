@@ -4,7 +4,7 @@ Render [Open Graph](https://ogp.me/) and [Twitter Card](https://developer.twitte
 
 ## Usage
 
-Include the element in your layout `<head>`:
+Include the element in your layout `<head>`. The element delegates to `SeoHelper::openGraph()` and auto-loads the Seo helper if needed.
 
 ```php
 <?= $this->element('Brammo/Content.og', [

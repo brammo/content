@@ -9,8 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **SeoHelper** - SEO meta tags, canonical links, Open Graph/Twitter tags, and JSON-LD structured data
+  - `canonical()`, `robots()`, `description()`, `openGraph()`, `jsonLd()`, and `head()` methods
+  - JSON-LD presets: `schemaWebSite()`, `schemaOrganization()`, `schemaWebPage()`, `schemaArticle()`, `schemaBreadcrumbList()`
+  - Site-wide defaults via config (`siteName`, `twitterSite`, `locale`, `organization`)
 - **Open Graph Element** - Open Graph and Twitter Card meta tags for social sharing previews
   - Required `$title` with optional description, image, URL, and site metadata
+  - Delegates to `SeoHelper::openGraph()`; auto-loads Seo helper if needed
   - Relative image and URL paths converted to absolute URLs
   - Twitter Card tags with sensible defaults (`summary_large_image` when an image is set)
 

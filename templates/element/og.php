@@ -24,89 +24,35 @@ if (!isset($title) || $title === '') {
     throw new \InvalidArgumentException('Missing required $title variable for og element');
 }
 
-$toAbsoluteUrl = function (string $path): string {
-    if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-        return $path;
-    }
-
-    return $this->Url->build($path, ['fullBase' => true]);
-};
-
-$type = $type ?? 'website';
-
-if (!isset($url) || $url === '') {
-    $url = $this->Url->build(null, ['fullBase' => true]);
-} else {
-    $url = $toAbsoluteUrl($url);
+if (!isset($this->Seo)) {
+    $this->loadHelper('Brammo/Content.Seo');
 }
 
-$imageUrl = null;
-if (isset($image) && $image !== '') {
-    $imageUrl = $toAbsoluteUrl($image);
-}
-
-$twitterCard = $twitterCard ?? ($imageUrl !== null ? 'summary_large_image' : 'summary');
-$twitterTitle = $twitterTitle ?? $title;
-$twitterDescription = $twitterDescription ?? ($description ?? null);
-$twitterImageUrl = null;
-if (isset($twitterImage) && $twitterImage !== '') {
-    $twitterImageUrl = $toAbsoluteUrl($twitterImage);
-} elseif ($imageUrl !== null) {
-    $twitterImageUrl = $imageUrl;
-}
-
-$tags = [
-    ['property' => 'og:title', 'content' => $title],
-    ['property' => 'og:type', 'content' => $type],
-    ['property' => 'og:url', 'content' => $url],
+$options = [
+    'title' => $title,
+    'type' => $type ?? 'website',
 ];
 
-if (isset($description) && $description !== '') {
-    $tags[] = ['property' => 'og:description', 'content' => $description];
-}
+$optionalKeys = [
+    'description',
+    'image',
+    'url',
+    'siteName',
+    'locale',
+    'imageWidth',
+    'imageHeight',
+    'imageAlt',
+    'twitterCard',
+    'twitterSite',
+    'twitterTitle',
+    'twitterDescription',
+    'twitterImage',
+];
 
-if (isset($siteName) && $siteName !== '') {
-    $tags[] = ['property' => 'og:site_name', 'content' => $siteName];
-}
-
-if (isset($locale) && $locale !== '') {
-    $tags[] = ['property' => 'og:locale', 'content' => $locale];
-}
-
-if ($imageUrl !== null) {
-    $tags[] = ['property' => 'og:image', 'content' => $imageUrl];
-
-    if (isset($imageWidth)) {
-        $tags[] = ['property' => 'og:image:width', 'content' => (string)$imageWidth];
-    }
-
-    if (isset($imageHeight)) {
-        $tags[] = ['property' => 'og:image:height', 'content' => (string)$imageHeight];
-    }
-
-    if (isset($imageAlt) && $imageAlt !== '') {
-        $tags[] = ['property' => 'og:image:alt', 'content' => $imageAlt];
+foreach ($optionalKeys as $key) {
+    if (isset($$key)) {
+        $options[$key] = $$key;
     }
 }
 
-$tags[] = ['name' => 'twitter:card', 'content' => $twitterCard];
-$tags[] = ['name' => 'twitter:title', 'content' => $twitterTitle];
-
-if ($twitterDescription !== null && $twitterDescription !== '') {
-    $tags[] = ['name' => 'twitter:description', 'content' => $twitterDescription];
-}
-
-if ($twitterImageUrl !== null) {
-    $tags[] = ['name' => 'twitter:image', 'content' => $twitterImageUrl];
-}
-
-if (isset($twitterSite) && $twitterSite !== '') {
-    $tags[] = ['name' => 'twitter:site', 'content' => $twitterSite];
-}
-
-$output = '';
-foreach ($tags as $tag) {
-    $output .= $this->Html->meta($tag);
-}
-
-echo $output;
+echo $this->Seo->openGraph($options);

@@ -65,3 +65,22 @@ echo $this->Flag->icon('de');
 ```
 
 [Full FlagHelper documentation](FlagHelper.md)
+
+## SeoHelper
+
+Generate canonical links, robots meta tags, Open Graph/Twitter tags, and JSON-LD structured data.
+
+```php
+$this->loadHelper('Brammo/Content.Seo');
+
+echo $this->Seo->canonical('/articles/example');
+// Returns: <link rel="canonical" href="https://example.com/articles/example">
+
+echo $this->Seo->robots(['index', 'follow']);
+// Returns: <meta name="robots" content="index,follow">
+
+echo $this->Seo->jsonLd($this->Seo->schemaWebSite('My Site', '/'));
+// Returns: <script type="application/ld+json">...</script>
+```
+
+[Full SeoHelper documentation](SeoHelper.md)

@@ -16,6 +16,8 @@ A [CakePHP](https://cakephp.org/) plugin for content manipulation including imag
   - [DateHelper](/doc/DateHelper.md)
   - [ImageHelper](/doc/ImageHelper.md)
   - [VideoHelper](/doc/VideoHelper.md)
+  - [FlagHelper](/doc/FlagHelper.md)
+  - [SeoHelper](/doc/SeoHelper.md)
 - [Elements](/doc/Elements.md)
   - [Select2](/doc/Select2Element.md)
   - [Masonry](/doc/MasonryElement.md)
@@ -39,6 +41,8 @@ $this->addPlugin('Brammo/Content');
 $this->loadHelper('Brammo/Content.Date');
 $this->loadHelper('Brammo/Content.Image');
 $this->loadHelper('Brammo/Content.Video');
+$this->loadHelper('Brammo/Content.Flag');
+$this->loadHelper('Brammo/Content.Seo');
 $this->loadHelper('Brammo/Content.Flag');
 ```
 

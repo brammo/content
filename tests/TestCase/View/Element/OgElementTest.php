@@ -37,6 +37,7 @@ class OgElementTest extends TestCase
                 ],
             ]),
         ]);
+        $this->View->loadHelper('Brammo/Content.Seo');
     }
 
     /**
