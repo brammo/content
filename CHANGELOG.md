@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- **Open Graph Element** - Open Graph and Twitter Card meta tags for social sharing previews
+  - Required `$title` with optional description, image, URL, and site metadata
+  - Relative image and URL paths converted to absolute URLs
+  - Twitter Card tags with sensible defaults (`summary_large_image` when an image is set)
+
 ## [1.1.1] - 2026-05-23
 
 - GitHub Actions CI workflow (PHPUnit, code style, PHPStan, and Psalm on PHP 8.2 and 8.3)

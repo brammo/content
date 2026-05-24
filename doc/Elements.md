@@ -54,3 +54,17 @@ Beautiful image and video lightbox galleries with zoom and thumbnails.
 ```
 
 [Full Lightgallery documentation](LightgalleryElement.md)
+
+## Open Graph
+
+Open Graph and Twitter Card meta tags for social sharing previews.
+
+```php
+<?= $this->element('Brammo/Content.og', [
+    'title' => 'My Page Title',
+    'description' => 'A short summary of the page.',
+    'image' => '/images/share.jpg',
+]) ?>
+```
+
+[Full Open Graph documentation](OgElement.md)
