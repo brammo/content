@@ -23,6 +23,13 @@ echo $this->Seo->head([
     'canonical' => '/articles/' . $article->slug,
     'description' => $article->summary,
     'robots' => ['index', 'follow'],
+    'themeColor' => '#336699',
+    'hreflang' => ['en' => '/en/articles/' . $article->slug],
+    'pagination' => ['prev' => '/articles?page=1', 'next' => '/articles?page=3'],
+    'articleMeta' => [
+        'publishedTime' => $article->published->format('c'),
+        'author' => $article->author_name,
+    ],
     'openGraph' => [
         'title' => $article->title,
         'description' => $article->summary,
@@ -89,7 +96,52 @@ echo $this->Seo->openGraph([
 ]);
 ```
 
-See [Open Graph Element](OgElement.md) for the full list of supported options.
+See [Open Graph Element](OgElement.md) for the full list of supported options. Article-specific tags (`article:published_time`, `article:author`, etc.) can be passed in `openGraph()` options or via `articleMeta()`.
+
+#### articleMeta()
+
+Generates article Open Graph meta tags for blog and news content.
+
+```php
+echo $this->Seo->articleMeta([
+    'publishedTime' => '2025-01-01T10:00:00+00:00',
+    'modifiedTime' => '2025-01-02T12:00:00+00:00',
+    'author' => ['Jane Doe'],
+    'section' => 'Technology',
+    'tag' => ['php', 'cakephp'],
+]);
+```
+
+Supported keys: `publishedTime`, `modifiedTime`, `expirationTime`, `author` (string or array), `section`, `tag` (string or array).
+
+#### hreflang()
+
+Generates `<link rel="alternate" hreflang="...">` tags for multilingual pages.
+
+```php
+echo $this->Seo->hreflang([
+    'en' => '/en/about',
+    'de' => '/de/about',
+    'x-default' => '/about',
+]);
+```
+
+#### pagination()
+
+Generates `<link rel="prev">` and/or `<link rel="next">` tags for paginated content.
+
+```php
+echo $this->Seo->pagination('/articles?page=1', '/articles?page=3');
+echo $this->Seo->pagination(null, '/articles?page=2'); // next only
+```
+
+#### themeColor()
+
+Generates a `<meta name="theme-color">` tag for mobile browser chrome.
+
+```php
+echo $this->Seo->themeColor('#336699');
+```
 
 #### jsonLd()
 
@@ -115,6 +167,9 @@ Each preset returns a schema array for use with `jsonLd()` or `head()`.
 | `schemaWebPage($name, $url, $options)` | `WebPage` | Optional `description`, `dateModified` |
 | `schemaArticle($headline, $url, $options)` | `Article` / `NewsArticle` | Optional `author`, dates, `image`, `publisher`, `type` |
 | `schemaBreadcrumbList($items)` | `BreadcrumbList` | Array of `['name' => '...', 'url' => '...']` |
+| `schemaProduct($name, $options)` | `Product` | Optional `description`, `image`, `sku`, `brand`, `offers`, `aggregateRating` |
+| `schemaFAQPage($items)` | `FAQPage` | Array of `['question' => '...', 'answer' => '...']` |
+| `schemaLocalBusiness($name, $url, $options)` | `LocalBusiness` | Optional `type`, `address`, `telephone`, `geo`, `openingHours`, `image`, `priceRange` |
 
 ```php
 $schema = $this->Seo->schemaOrganization('Acme Inc', '/about', [
@@ -158,7 +213,3 @@ The [`og` element](OgElement.md) delegates to `SeoHelper::openGraph()`. You can 
 ```
 
 The element auto-loads `Brammo/Content.Seo` if it is not already loaded.
-
-## Future extensions
-
-Possible additions for future versions: `hreflang()`, pagination `prev`/`next` links, `article:published_time` OG tags, additional JSON-LD presets (`Product`, `FAQPage`, `LocalBusiness`), and `theme-color` meta tags.

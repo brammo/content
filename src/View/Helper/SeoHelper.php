@@ -122,6 +122,81 @@ class SeoHelper extends Helper
     }
 
     /**
+     * Generate article Open Graph meta tags.
+     *
+     * @param array<string, mixed> $options Keys: publishedTime, modifiedTime, expirationTime, author, section, tag
+     * @return string HTML meta tags
+     */
+    public function articleMeta(array $options): string
+    {
+        $tags = $this->buildArticleMetaTags($options);
+        $output = '';
+
+        foreach ($tags as $tag) {
+            $output .= $this->Html->meta($tag);
+        }
+
+        return $output;
+    }
+
+    /**
+     * Generate hreflang alternate link tags.
+     *
+     * @param array<string, string> $alternates Locale or region code to URL map (e.g. ['en' => '/en/page', 'x-default' => '/page'])
+     * @return string HTML link tags
+     */
+    public function hreflang(array $alternates): string
+    {
+        if ($alternates === []) {
+            throw new InvalidArgumentException('Hreflang alternates cannot be empty');
+        }
+
+        $output = '';
+        foreach ($alternates as $lang => $url) {
+            $output .= (string)$this->Html->meta([
+                'link' => $this->absoluteUrl($url),
+                'rel' => 'alternate',
+                'hreflang' => $lang,
+            ]);
+        }
+
+        return $output;
+    }
+
+    /**
+     * Generate pagination prev/next link tags.
+     *
+     * @param string|null $prev Previous page URL
+     * @param string|null $next Next page URL
+     * @return string HTML link tags
+     */
+    public function pagination(?string $prev = null, ?string $next = null): string
+    {
+        $output = '';
+
+        if ($prev !== null && $prev !== '') {
+            $output .= (string)$this->Html->meta('prev', $this->absoluteUrl($prev));
+        }
+
+        if ($next !== null && $next !== '') {
+            $output .= (string)$this->Html->meta('next', $this->absoluteUrl($next));
+        }
+
+        return $output;
+    }
+
+    /**
+     * Generate a theme-color meta tag.
+     *
+     * @param string $color CSS color value (e.g. #ffffff)
+     * @return string HTML meta tag
+     */
+    public function themeColor(string $color): string
+    {
+        return (string)$this->Html->meta(['name' => 'theme-color', 'content' => $color]);
+    }
+
+    /**
      * Generate Open Graph and Twitter Card meta tags.
      *
      * @param array<string, mixed> $options Tag options (title is required)
@@ -210,6 +285,8 @@ class SeoHelper extends Helper
             $tags[] = ['name' => 'twitter:site', 'content' => $twitterSite];
         }
 
+        $tags = array_merge($tags, $this->buildArticleMetaTags($options));
+
         $output = '';
         foreach ($tags as $tag) {
             $output .= $this->Html->meta($tag);
@@ -243,7 +320,8 @@ class SeoHelper extends Helper
     /**
      * Generate combined SEO head output.
      *
-     * @param array<string, mixed> $options Keys: canonical, robots, description, openGraph, jsonLd
+     * @param array<string, mixed> $options Keys: canonical, robots, description, openGraph, jsonLd,
+     *                                       hreflang, pagination, articleMeta, themeColor
      * @return string Combined HTML output
      */
     public function head(array $options): string
@@ -265,6 +343,26 @@ class SeoHelper extends Helper
 
         if (isset($options['description']) && $options['description'] !== '') {
             $output .= $this->description((string)$options['description']);
+        }
+
+        if (isset($options['themeColor']) && $options['themeColor'] !== '') {
+            $output .= $this->themeColor((string)$options['themeColor']);
+        }
+
+        if (isset($options['hreflang']) && is_array($options['hreflang'])) {
+            $output .= $this->hreflang($options['hreflang']);
+        }
+
+        if (isset($options['pagination']) && is_array($options['pagination'])) {
+            $pagination = $options['pagination'];
+            $output .= $this->pagination(
+                isset($pagination['prev']) ? (string)$pagination['prev'] : null,
+                isset($pagination['next']) ? (string)$pagination['next'] : null,
+            );
+        }
+
+        if (isset($options['articleMeta']) && is_array($options['articleMeta'])) {
+            $output .= $this->articleMeta($options['articleMeta']);
         }
 
         if (isset($options['openGraph']) && is_array($options['openGraph'])) {
@@ -444,6 +542,214 @@ class SeoHelper extends Helper
             '@type' => 'BreadcrumbList',
             'itemListElement' => $listItems,
         ];
+    }
+
+    /**
+     * Build a Product JSON-LD schema.
+     *
+     * @param string $name Product name
+     * @param array<string, mixed> $options Optional description, image, sku, brand, offers, aggregateRating
+     * @return array<string, mixed>
+     */
+    public function schemaProduct(string $name, array $options = []): array
+    {
+        $schema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'Product',
+            'name' => $name,
+        ];
+
+        if (isset($options['description']) && $options['description'] !== '') {
+            $schema['description'] = $options['description'];
+        }
+
+        if (isset($options['image']) && $options['image'] !== '') {
+            $schema['image'] = $this->absoluteUrl((string)$options['image']);
+        }
+
+        if (isset($options['sku']) && $options['sku'] !== '') {
+            $schema['sku'] = $options['sku'];
+        }
+
+        if (isset($options['brand']) && $options['brand'] !== '') {
+            if (is_array($options['brand'])) {
+                $schema['brand'] = $options['brand'];
+            } else {
+                $schema['brand'] = [
+                    '@type' => 'Brand',
+                    'name' => (string)$options['brand'],
+                ];
+            }
+        }
+
+        if (isset($options['offers']) && is_array($options['offers'])) {
+            $schema['offers'] = $this->buildSchemaOffer($options['offers']);
+        }
+
+        if (isset($options['aggregateRating']) && is_array($options['aggregateRating'])) {
+            $schema['aggregateRating'] = [
+                '@type' => 'AggregateRating',
+                'ratingValue' => $options['aggregateRating']['ratingValue'],
+                'reviewCount' => $options['aggregateRating']['reviewCount'],
+            ];
+        }
+
+        return $schema;
+    }
+
+    /**
+     * Build a FAQPage JSON-LD schema.
+     *
+     * @param array<int, array{question: string, answer: string}> $items FAQ items
+     * @return array<string, mixed>
+     */
+    public function schemaFAQPage(array $items): array
+    {
+        if ($items === []) {
+            throw new InvalidArgumentException('FAQPage items cannot be empty');
+        }
+
+        $mainEntity = [];
+        foreach ($items as $item) {
+            $mainEntity[] = [
+                '@type' => 'Question',
+                'name' => $item['question'],
+                'acceptedAnswer' => [
+                    '@type' => 'Answer',
+                    'text' => $item['answer'],
+                ],
+            ];
+        }
+
+        return [
+            '@context' => 'https://schema.org',
+            '@type' => 'FAQPage',
+            'mainEntity' => $mainEntity,
+        ];
+    }
+
+    /**
+     * Build a LocalBusiness JSON-LD schema.
+     *
+     * @param string $name Business name
+     * @param string $url Business URL
+     * @param array<string, mixed> $options Optional type, address, telephone, geo, openingHours, image, priceRange
+     * @return array<string, mixed>
+     */
+    public function schemaLocalBusiness(string $name, string $url, array $options = []): array
+    {
+        $schema = [
+            '@context' => 'https://schema.org',
+            '@type' => $options['type'] ?? 'LocalBusiness',
+            'name' => $name,
+            'url' => $this->absoluteUrl($url),
+        ];
+
+        if (isset($options['description']) && $options['description'] !== '') {
+            $schema['description'] = $options['description'];
+        }
+
+        if (isset($options['image']) && $options['image'] !== '') {
+            $schema['image'] = $this->absoluteUrl((string)$options['image']);
+        }
+
+        if (isset($options['telephone']) && $options['telephone'] !== '') {
+            $schema['telephone'] = $options['telephone'];
+        }
+
+        if (isset($options['priceRange']) && $options['priceRange'] !== '') {
+            $schema['priceRange'] = $options['priceRange'];
+        }
+
+        if (isset($options['address']) && is_array($options['address'])) {
+            $schema['address'] = ['@type' => 'PostalAddress'] + $options['address'];
+        }
+
+        if (isset($options['geo']) && is_array($options['geo'])) {
+            $schema['geo'] = ['@type' => 'GeoCoordinates'] + $options['geo'];
+        }
+
+        if (isset($options['openingHours']) && $options['openingHours'] !== '') {
+            $schema['openingHours'] = $options['openingHours'];
+        }
+
+        return $schema;
+    }
+
+    /**
+     * Build article Open Graph meta tag definitions.
+     *
+     * @param array<string, mixed> $options Article meta options
+     * @return array<int, array<string, string>>
+     */
+    protected function buildArticleMetaTags(array $options): array
+    {
+        $tags = [];
+
+        if (isset($options['publishedTime']) && $options['publishedTime'] !== '') {
+            $tags[] = ['property' => 'article:published_time', 'content' => (string)$options['publishedTime']];
+        }
+
+        if (isset($options['modifiedTime']) && $options['modifiedTime'] !== '') {
+            $tags[] = ['property' => 'article:modified_time', 'content' => (string)$options['modifiedTime']];
+        }
+
+        if (isset($options['expirationTime']) && $options['expirationTime'] !== '') {
+            $tags[] = ['property' => 'article:expiration_time', 'content' => (string)$options['expirationTime']];
+        }
+
+        if (isset($options['section']) && $options['section'] !== '') {
+            $tags[] = ['property' => 'article:section', 'content' => (string)$options['section']];
+        }
+
+        if (isset($options['author']) && $options['author'] !== '') {
+            $authors = is_array($options['author']) ? $options['author'] : [$options['author']];
+            foreach ($authors as $author) {
+                if ($author !== '') {
+                    $tags[] = ['property' => 'article:author', 'content' => (string)$author];
+                }
+            }
+        }
+
+        if (isset($options['tag'])) {
+            $articleTags = is_array($options['tag']) ? $options['tag'] : [$options['tag']];
+            foreach ($articleTags as $tag) {
+                if ($tag !== '') {
+                    $tags[] = ['property' => 'article:tag', 'content' => (string)$tag];
+                }
+            }
+        }
+
+        return $tags;
+    }
+
+    /**
+     * Build an Offer schema fragment for Product JSON-LD.
+     *
+     * @param array<string, mixed> $offers Offer options
+     * @return array<string, mixed>
+     */
+    protected function buildSchemaOffer(array $offers): array
+    {
+        $offer = ['@type' => 'Offer'];
+
+        if (isset($offers['price'])) {
+            $offer['price'] = $offers['price'];
+        }
+
+        if (isset($offers['priceCurrency']) && $offers['priceCurrency'] !== '') {
+            $offer['priceCurrency'] = $offers['priceCurrency'];
+        }
+
+        if (isset($offers['availability']) && $offers['availability'] !== '') {
+            $offer['availability'] = $offers['availability'];
+        }
+
+        if (isset($offers['url']) && $offers['url'] !== '') {
+            $offer['url'] = $this->absoluteUrl((string)$offers['url']);
+        }
+
+        return $offer;
     }
 
     /**

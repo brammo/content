@@ -537,4 +537,242 @@ class SeoHelperTest extends TestCase
         $this->assertStringContainsString('<script type="application/ld+json">', $result);
         $this->assertStringContainsString('"@type":"Article"', $result);
     }
+
+    /**
+     * Test articleMeta tags
+     *
+     * @return void
+     */
+    public function testArticleMeta(): void
+    {
+        $result = $this->Seo->articleMeta([
+            'publishedTime' => '2025-01-01T10:00:00+00:00',
+            'modifiedTime' => '2025-01-02T12:00:00+00:00',
+            'author' => ['Jane Doe', 'John Smith'],
+            'section' => 'Technology',
+            'tag' => ['php', 'cakephp'],
+        ]);
+
+        $this->assertStringContainsString('property="article:published_time"', $result);
+        $this->assertStringContainsString('content="2025-01-01T10:00:00+00:00"', $result);
+        $this->assertStringContainsString('property="article:modified_time"', $result);
+        $this->assertStringContainsString('property="article:author"', $result);
+        $this->assertStringContainsString('content="Jane Doe"', $result);
+        $this->assertStringContainsString('content="John Smith"', $result);
+        $this->assertStringContainsString('property="article:section"', $result);
+        $this->assertStringContainsString('content="Technology"', $result);
+        $this->assertStringContainsString('property="article:tag"', $result);
+        $this->assertStringContainsString('content="php"', $result);
+    }
+
+    /**
+     * Test openGraph includes article meta tags when provided
+     *
+     * @return void
+     */
+    public function testOpenGraphArticleMetaTags(): void
+    {
+        $result = $this->Seo->openGraph([
+            'title' => 'Article Title',
+            'type' => 'article',
+            'publishedTime' => '2025-06-15T08:00:00+00:00',
+            'author' => 'Jane Doe',
+        ]);
+
+        $this->assertStringContainsString('property="article:published_time"', $result);
+        $this->assertStringContainsString('property="article:author"', $result);
+        $this->assertStringContainsString('content="Jane Doe"', $result);
+    }
+
+    /**
+     * Test hreflang alternate links
+     *
+     * @return void
+     */
+    public function testHreflang(): void
+    {
+        $result = $this->Seo->hreflang([
+            'en' => '/en/about',
+            'de' => 'https://example.com/de/about',
+            'x-default' => '/about',
+        ]);
+
+        $this->assertStringContainsString('rel="alternate"', $result);
+        $this->assertStringContainsString('hreflang="en"', $result);
+        $this->assertStringContainsString('href="http://localhost/en/about"', $result);
+        $this->assertStringContainsString('hreflang="de"', $result);
+        $this->assertStringContainsString('href="https://example.com/de/about"', $result);
+        $this->assertStringContainsString('hreflang="x-default"', $result);
+    }
+
+    /**
+     * Test hreflang empty alternates throws exception
+     *
+     * @return void
+     */
+    public function testHreflangEmptyThrowsException(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Hreflang alternates cannot be empty');
+
+        $this->Seo->hreflang([]);
+    }
+
+    /**
+     * Test pagination prev/next links
+     *
+     * @return void
+     */
+    public function testPagination(): void
+    {
+        $result = $this->Seo->pagination('/articles?page=1', '/articles?page=3');
+
+        $this->assertStringContainsString('rel="prev"', $result);
+        $this->assertStringContainsString('href="http://localhost/articles?page=1"', $result);
+        $this->assertStringContainsString('rel="next"', $result);
+        $this->assertStringContainsString('href="http://localhost/articles?page=3"', $result);
+    }
+
+    /**
+     * Test pagination with only next link
+     *
+     * @return void
+     */
+    public function testPaginationNextOnly(): void
+    {
+        $result = $this->Seo->pagination(null, '/articles?page=2');
+
+        $this->assertStringNotContainsString('rel="prev"', $result);
+        $this->assertStringContainsString('rel="next"', $result);
+    }
+
+    /**
+     * Test themeColor meta tag
+     *
+     * @return void
+     */
+    public function testThemeColor(): void
+    {
+        $result = $this->Seo->themeColor('#336699');
+
+        $this->assertStringContainsString('name="theme-color"', $result);
+        $this->assertStringContainsString('content="#336699"', $result);
+    }
+
+    /**
+     * Test schemaProduct
+     *
+     * @return void
+     */
+    public function testSchemaProduct(): void
+    {
+        $schema = $this->Seo->schemaProduct('Widget Pro', [
+            'description' => 'A great widget',
+            'image' => '/products/widget.jpg',
+            'sku' => 'WDG-001',
+            'brand' => 'Acme',
+            'offers' => [
+                'price' => '29.99',
+                'priceCurrency' => 'USD',
+                'availability' => 'https://schema.org/InStock',
+                'url' => '/products/widget',
+            ],
+            'aggregateRating' => [
+                'ratingValue' => '4.5',
+                'reviewCount' => '120',
+            ],
+        ]);
+
+        $this->assertSame('Product', $schema['@type']);
+        $this->assertSame('Widget Pro', $schema['name']);
+        $this->assertSame('http://localhost/products/widget.jpg', $schema['image']);
+        $this->assertSame('Acme', $schema['brand']['name']);
+        $this->assertSame('29.99', $schema['offers']['price']);
+        $this->assertSame('USD', $schema['offers']['priceCurrency']);
+        $this->assertSame('4.5', $schema['aggregateRating']['ratingValue']);
+    }
+
+    /**
+     * Test schemaFAQPage
+     *
+     * @return void
+     */
+    public function testSchemaFAQPage(): void
+    {
+        $schema = $this->Seo->schemaFAQPage([
+            ['question' => 'What is this?', 'answer' => 'A product.'],
+            ['question' => 'How much?', 'answer' => '$29.99.'],
+        ]);
+
+        $this->assertSame('FAQPage', $schema['@type']);
+        $this->assertCount(2, $schema['mainEntity']);
+        $this->assertSame('Question', $schema['mainEntity'][0]['@type']);
+        $this->assertSame('What is this?', $schema['mainEntity'][0]['name']);
+        $this->assertSame('A product.', $schema['mainEntity'][0]['acceptedAnswer']['text']);
+    }
+
+    /**
+     * Test schemaFAQPage empty items throws exception
+     *
+     * @return void
+     */
+    public function testSchemaFAQPageEmptyThrowsException(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('FAQPage items cannot be empty');
+
+        $this->Seo->schemaFAQPage([]);
+    }
+
+    /**
+     * Test schemaLocalBusiness
+     *
+     * @return void
+     */
+    public function testSchemaLocalBusiness(): void
+    {
+        $schema = $this->Seo->schemaLocalBusiness('Acme Cafe', '/locations/downtown', [
+            'type' => 'Restaurant',
+            'telephone' => '+1-555-0100',
+            'priceRange' => '$$',
+            'address' => [
+                'streetAddress' => '123 Main St',
+                'addressLocality' => 'Springfield',
+                'postalCode' => '12345',
+                'addressCountry' => 'US',
+            ],
+            'geo' => [
+                'latitude' => '39.7817',
+                'longitude' => '-89.6501',
+            ],
+            'openingHours' => 'Mo-Fr 09:00-17:00',
+        ]);
+
+        $this->assertSame('Restaurant', $schema['@type']);
+        $this->assertSame('Acme Cafe', $schema['name']);
+        $this->assertSame('+1-555-0100', $schema['telephone']);
+        $this->assertSame('123 Main St', $schema['address']['streetAddress']);
+        $this->assertSame('39.7817', $schema['geo']['latitude']);
+        $this->assertSame('Mo-Fr 09:00-17:00', $schema['openingHours']);
+    }
+
+    /**
+     * Test head composes extended outputs
+     *
+     * @return void
+     */
+    public function testHeadComposesExtendedOutputs(): void
+    {
+        $result = $this->Seo->head([
+            'themeColor' => '#112233',
+            'hreflang' => ['en' => '/en/page'],
+            'pagination' => ['next' => '/page/2'],
+            'articleMeta' => ['publishedTime' => '2025-01-01T00:00:00+00:00'],
+        ]);
+
+        $this->assertStringContainsString('name="theme-color"', $result);
+        $this->assertStringContainsString('hreflang="en"', $result);
+        $this->assertStringContainsString('rel="next"', $result);
+        $this->assertStringContainsString('property="article:published_time"', $result);
+    }
 }
