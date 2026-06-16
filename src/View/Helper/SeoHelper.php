@@ -133,7 +133,7 @@ class SeoHelper extends Helper
         $output = '';
 
         foreach ($tags as $tag) {
-            $output .= $this->Html->meta($tag);
+            $output .= $this->Html->meta($tag) ?? '';
         }
 
         return $output;
@@ -289,7 +289,7 @@ class SeoHelper extends Helper
 
         $output = '';
         foreach ($tags as $tag) {
-            $output .= $this->Html->meta($tag);
+            $output .= $this->Html->meta($tag) ?? '';
         }
 
         return $output;
