@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- **ImageHelper** - Instantiate `VipsDriver` directly instead of via a dynamic class name so Psalm can infer the `DriverInterface` return type
+
 ## [1.2.0] - 2026-05-24
 
 ### Added

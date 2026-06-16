@@ -7,6 +7,7 @@ namespace Brammo\Content\View\Helper;
 use Cake\View\Helper;
 use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 use Intervention\Image\Drivers\Imagick\Driver as ImagickDriver;
+use Intervention\Image\Drivers\Vips\Driver as VipsDriver;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Interfaces\DriverInterface;
 use Intervention\Image\Interfaces\ImageInterface;
@@ -317,16 +318,14 @@ class ImageHelper extends Helper
      */
     protected function createVipsDriver(): DriverInterface
     {
-        $vipsDriverClass = 'Intervention\\Image\\Drivers\\Vips\\Driver';
-
-        if (!class_exists($vipsDriverClass)) {
+        if (!class_exists(VipsDriver::class)) {
             throw new \RuntimeException(
                 'libvips driver requires intervention/image-driver-vips package. ' .
                 'Install it with: composer require intervention/image-driver-vips'
             );
         }
 
-        return new $vipsDriverClass();
+        return new VipsDriver();
     }
 
     /**
