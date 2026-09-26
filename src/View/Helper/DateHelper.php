@@ -25,11 +25,15 @@ class DateHelper extends Helper
     /**
      * Returns nicely formatted date
      *
-     * @param \Cake\I18n\Date|\Cake\I18n\DateTime|string $date Date
+     * @param \Cake\I18n\Date|\Cake\I18n\DateTime|string|null $date Date
      * @return string Formatted text
      */
-    public function nice(Date|DateTime|string $date): string
+    public function nice(Date|DateTime|string|null $date): string
     {
+        if ($date === null || $date === '') {
+            return '';
+        }
+
         $date = new DateTime($date);
 
         return (string)($date->i18nFormat('d MMMM yyyy'));
@@ -38,12 +42,20 @@ class DateHelper extends Helper
     /**
      * Returns formatted date range
      *
-     * @param \Cake\I18n\DateTime|string $startDate Start date
-     * @param \Cake\I18n\DateTime|string $endDate End date
+     * @param \Cake\I18n\Date|\Cake\I18n\DateTime|string|null $startDate Start date
+     * @param \Cake\I18n\Date|\Cake\I18n\DateTime|string|null $endDate End date
      * @return string Formatted text
      */
-    public function range(Date|DateTime|string $startDate, Date|DateTime|string $endDate): string
+    public function range(Date|DateTime|string|null $startDate, Date|DateTime|string|null $endDate): string
     {
+        if ($startDate === null || $startDate === '') {
+            return '';
+        }
+
+        if ($endDate === null || $endDate === '') {
+            $endDate = $startDate;
+        }
+
         $startDate = new DateTime($startDate);
         $endDate = new DateTime($endDate);
 
