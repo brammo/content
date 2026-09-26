@@ -22,7 +22,7 @@ class SeoHelper extends Helper
     /**
      * List of helpers used by this helper
      *
-     * @var array<array-key, mixed>
+     * @var array<int|string, array<string, mixed>|string>
      */
     protected array $helpers = ['Html', 'Url'];
 
