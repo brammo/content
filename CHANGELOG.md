@@ -7,9 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.3.0] - 2026-10-04
+
 ### Changed
 
+- **DateHelper** - `nice()` and `range()` accept `null` and empty strings; `nice()` returns an empty string, and `range()` returns an empty string when the start date is missing or uses the start date when the end date is missing
 - **ImageHelper** - Instantiate `VipsDriver` directly instead of via a dynamic class name so Psalm can infer the `DriverInterface` return type
+- **ImageHelper** and **SeoHelper** - Tighten the `$helpers` PHPDoc array shape so static analysis can infer helper types
+
+### Fixed
+
+- **SeoHelper** - Treat a `null` return from `HtmlHelper::meta()` as an empty string when building meta tag output
 
 ## [1.2.0] - 2026-05-24
 
