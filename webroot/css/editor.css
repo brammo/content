@@ -1,0 +1,392 @@
+/**
+ * HTML Editor Stylesheet
+ *
+ * Lightweight contenteditable WYSIWYG editor.
+ *
+ * Dependencies: Bootstrap 5, Bootstrap Icons.
+ */
+
+.html-editor {
+    width: 100%;
+}
+
+/* Toolbar */
+
+.html-editor-toolbar {
+    padding: 0.5rem;
+    background-color: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius) var(--bs-border-radius) 0 0;
+}
+
+.html-editor-toolbar .btn {
+    --bs-btn-color: var(--bs-body-color);
+    --bs-btn-border-width: 0;
+    --bs-btn-font-size: 1rem;
+}
+
+.html-editor-toolbar .btn:hover {
+    background-color: var(--bs-secondary-color);
+    border-color: var(--bs-secondary-color);
+    color: #fff;
+}
+
+.html-editor-toolbar .btn:disabled {
+    border-color: var(--bs-border-color);
+}
+
+.html-editor-toolbar .btn.active {
+    background-color: var(--bs-secondary-color);
+    border-color: var(--bs-secondary-color);
+    color: #fff;
+}
+
+.html-editor-block-select {
+    width: auto;
+    min-width: 8rem;
+}
+
+
+/* Body */
+
+.html-editor-body {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--bs-border-color);
+    border-top: none;
+    border-radius: 0 0 var(--bs-border-radius) var(--bs-border-radius);
+    background: var(--bs-card-bg);
+    color: var(--bs-body-color);
+    outline: none;
+    height: var(--html-editor-height, 500px);
+    max-height: var(--html-editor-height, 500px);
+    overflow-y: auto;
+}
+
+/* Source mode (highlighted textarea overlay) */
+
+.html-editor-source-wrap {
+    display: flex;
+    border: 1px solid var(--bs-border-color);
+    border-top: none;
+    border-radius: 0 0 var(--bs-border-radius) var(--bs-border-radius);
+    background: var(--bs-body-bg);
+    height: var(--html-editor-height, 500px);
+    max-height: var(--html-editor-height, 500px);
+    overflow: hidden;
+}
+
+.html-editor-gutter {
+    flex: 0 0 auto;
+    min-width: 2.5rem;
+    padding: 0.75rem 0.5rem;
+    margin: 0;
+    border-right: 1px solid var(--bs-border-color);
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+    font-family: var(--bs-font-monospace, monospace);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    text-align: right;
+    overflow: hidden;
+    user-select: none;
+}
+
+.html-editor-gutter-line {
+    overflow: hidden;
+}
+
+.html-editor-source-inner {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.html-editor-highlight {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border: none;
+    overflow: hidden;
+    pointer-events: none;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    font-family: var(--bs-font-monospace, monospace);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--bs-body-color);
+    background: transparent;
+    tab-size: 2;
+}
+
+.html-editor-highlight code {
+    display: block;
+    padding: 0;
+    background: transparent;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+    white-space: inherit;
+    overflow-wrap: inherit;
+    tab-size: inherit;
+}
+
+/* Overrides .form-control (including :focus) so the highlight layer shows through */
+
+.html-editor-source-wrap .html-editor-source,
+.html-editor-source-wrap .html-editor-source:focus,
+.html-editor-source-wrap .html-editor-source:hover {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 0;
+    resize: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    font-family: var(--bs-font-monospace, monospace);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    caret-color: var(--bs-body-color);
+    background-color: transparent;
+    background-image: none;
+    box-shadow: none;
+    outline: none;
+    tab-size: 2;
+}
+
+.html-editor-source-wrap.is-plain .html-editor-source,
+.html-editor-source-wrap.is-plain .html-editor-source:focus {
+    color: var(--bs-body-color);
+    -webkit-text-fill-color: var(--bs-body-color);
+}
+
+.html-editor-source-wrap.is-plain .html-editor-highlight,
+.html-editor-source-wrap.is-plain .html-editor-gutter {
+    visibility: hidden;
+}
+
+.html-editor-source::selection {
+    background: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.3);
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+}
+
+.html-editor-highlight .tok-tag {
+    color: #0550ae;
+}
+
+.html-editor-highlight .tok-attr {
+    color: #953800;
+}
+
+.html-editor-highlight .tok-value {
+    color: #0a3069;
+}
+
+.html-editor-highlight .tok-comment {
+    color: #6e7781;
+    font-style: italic;
+}
+
+.html-editor-highlight .tok-doctype {
+    color: #6e7781;
+}
+
+.html-editor-highlight .tok-entity {
+    color: #8250df;
+}
+
+[data-bs-theme="dark"] .html-editor-highlight .tok-tag {
+    color: #79c0ff;
+}
+
+[data-bs-theme="dark"] .html-editor-highlight .tok-attr {
+    color: #ffa657;
+}
+
+[data-bs-theme="dark"] .html-editor-highlight .tok-value {
+    color: #a5d6ff;
+}
+
+[data-bs-theme="dark"] .html-editor-highlight .tok-comment,
+[data-bs-theme="dark"] .html-editor-highlight .tok-doctype {
+    color: #8b949e;
+}
+
+[data-bs-theme="dark"] .html-editor-highlight .tok-entity {
+    color: #d2a8ff;
+}
+
+.html-editor-body h1,
+.html-editor-body h2,
+.html-editor-body h3,
+.html-editor-body h4,
+.html-editor-body h5,
+.html-editor-body h6 {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+
+.html-editor-body blockquote {
+    margin: 0.5em 0;
+    padding: 0.5em 1em;
+    border-left: 3px solid var(--bs-border-color);
+    color: var(--bs-secondary-color);
+}
+
+.html-editor-body pre {
+    padding: 0.75rem;
+    background: var(--bs-tertiary-bg);
+    border-radius: var(--bs-border-radius-sm);
+    overflow-x: auto;
+}
+
+.html-editor-body code {
+    padding: 0.1em 0.3em;
+    background: var(--bs-tertiary-bg);
+    border-radius: var(--bs-border-radius-sm);
+    font-size: 0.875em;
+}
+
+.html-editor-body img {
+    max-width: 100%;
+    height: auto;
+}
+
+.html-editor-body ul,
+.html-editor-body ol {
+    padding-left: 1.5rem;
+}
+
+.html-editor-body table {
+    border-collapse: collapse;
+    max-width: 100%;
+    margin: 0.5em 0;
+}
+
+.html-editor-body table caption {
+    caption-side: top;
+    padding: 0.25em 0;
+    font-weight: 600;
+    text-align: left;
+}
+
+.html-editor-body td,
+.html-editor-body th {
+    padding: 0.35em 0.5em;
+    min-width: 1.5em;
+    min-height: 1.25em;
+}
+
+.html-editor-body td:not([style*="border"]),
+.html-editor-body th:not([style*="border"]) {
+    border: 1px dashed var(--bs-border-color);
+}
+
+.html-editor-body th {
+    font-weight: 600;
+    background: var(--bs-tertiary-bg);
+}
+
+/* Table dropdown */
+
+.html-editor-table-menu {
+    min-width: 14rem;
+}
+
+.html-editor-table-grid-wrap {
+    padding: 0.25rem;
+}
+
+.html-editor-table-grid-caption {
+    text-align: center;
+}
+
+.html-editor-table-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 2px;
+    width: 11rem;
+    margin: 0 auto;
+}
+
+.html-editor-table-grid-cell {
+    width: 0.9rem;
+    height: 0.9rem;
+    padding: 0;
+    border: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+    border-radius: 1px;
+    cursor: pointer;
+}
+
+.html-editor-table-grid-cell.is-active {
+    background: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.html-editor-table-action:disabled,
+.html-editor-table-action.disabled {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.html-editor.has-statusbar .html-editor-body,
+.html-editor.has-statusbar .html-editor-source-wrap {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+/* Status bar */
+
+.html-editor-statusbar {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    background-color: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-top: none;
+    border-radius: 0 0 var(--bs-border-radius) var(--bs-border-radius);
+    overflow-x: auto;
+    white-space: nowrap;
+    min-height: 1.75rem;
+}
+
+.html-editor-path-item {
+    padding: 0;
+    font-family: var(--bs-font-monospace, monospace);
+    font-size: inherit;
+    line-height: 1.2;
+    text-decoration: none;
+    color: var(--bs-body-color);
+}
+
+.html-editor-path-item:hover,
+.html-editor-path-item:focus {
+    color: var(--bs-primary);
+    text-decoration: underline;
+}
+
+.html-editor-path-sep {
+    color: var(--bs-secondary-color);
+    user-select: none;
+}
+
+.html-editor-image-browse-body,
+.html-editor-link-browse-body {
+    max-height: 60vh;
+    overflow-y: auto;
+}

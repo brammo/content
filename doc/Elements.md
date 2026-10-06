@@ -68,3 +68,14 @@ Open Graph and Twitter Card meta tags for social sharing previews.
 ```
 
 [Full Open Graph documentation](OgElement.md)
+
+## HTML Editor
+
+Contenteditable rich text for `textarea.editor` fields. Link and image dialogs take a URL. File browsing is optional and off by default.
+
+```php
+echo $this->element('Brammo/Content.editor');
+echo $this->Form->control('body', ['type' => 'textarea', 'class' => 'editor']);
+```
+
+[Full HTML editor documentation](EditorElement.md)

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- **HTML editor** — `Brammo/Content.editor` upgrades `textarea.editor` fields to a contenteditable editor (Bootstrap 5 and Bootstrap Icons). Optional `Content.Editor` settings: `height`, `cleanOnPaste`, `statusBar`, `tableClass`. Link and image dialogs accept a URL. File and image browsing stays off unless `imagesUrl` and `filesUrl` are passed for a host `FileBrowser`
+
 ## [1.3.0] - 2026-10-04
 
 ### Changed

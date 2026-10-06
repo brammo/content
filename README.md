@@ -24,6 +24,7 @@ A [CakePHP](https://cakephp.org/) plugin for content manipulation including imag
   - [Sticksy](/doc/SticksyElement.md)
   - [Lightgallery](/doc/LightgalleryElement.md)
   - [Open Graph](/doc/OgElement.md)
+  - [HTML Editor](/doc/EditorElement.md)
 - [Testing](/doc/Testing.md)
 - [Changelog](/CHANGELOG.md)
 

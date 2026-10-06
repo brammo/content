@@ -1,0 +1,260 @@
+msgid "Alt text"
+msgstr "Alt текст"
+
+msgid "Align center"
+msgstr "Подравняване в центъра"
+
+msgid "Align left"
+msgstr "Подравняване вляво"
+
+msgid "Align right"
+msgstr "Подравняване вдясно"
+
+msgid "Alignment"
+msgstr "Подравняване"
+
+msgid "Back"
+msgstr "Назад"
+
+msgid "Background"
+msgstr "Фон"
+
+msgid "Block format"
+msgstr "Формат на блок"
+
+msgid "Blockquote"
+msgstr "Цитат"
+
+msgid "Bold"
+msgstr "Удебелен"
+
+msgid "Bottom"
+msgstr "Долу"
+
+msgid "Bulleted list"
+msgstr "Маркиран списък"
+
+msgid "CSS class"
+msgstr "CSS клас"
+
+msgid "Cancel"
+msgstr "Откажи"
+
+msgid "Caption"
+msgstr "Надпис"
+
+msgid "Cell properties"
+msgstr "Свойства на клетката"
+
+msgid "Cell type"
+msgstr "Тип клетка"
+
+msgid "Clear formatting"
+msgstr "Изчисти форматиране"
+
+msgid "Clear formatting from the entire document?"
+msgstr "Изчистване на форматирането от целия документ?"
+
+msgid "Code"
+msgstr "Код"
+
+msgid "Columns"
+msgstr "Колони"
+
+msgid "Data cell"
+msgstr "Клетка с данни"
+
+msgid "Default"
+msgstr "По подразбиране"
+
+msgid "Delete column"
+msgstr "Изтрий колона"
+
+msgid "Delete row"
+msgstr "Изтрий ред"
+
+msgid "Delete table"
+msgstr "Изтрий таблица"
+
+msgid "Div"
+msgstr "Div"
+
+msgid "Edit HTML"
+msgstr "Редактирай HTML"
+
+msgid "Edit image"
+msgstr "Редактирай изображение"
+
+msgid "Edit link"
+msgstr "Редактирай връзка"
+
+msgid "Edit table"
+msgstr "Редактирай таблица"
+
+msgid "Element path"
+msgstr "Път на елемента"
+
+msgid "Format HTML"
+msgstr "Форматирай HTML"
+
+msgid "Header cell"
+msgstr "Заглавна клетка"
+
+msgid "Header column"
+msgstr "Заглавна колона"
+
+msgid "Header row"
+msgstr "Заглавен ред"
+
+msgid "Heading 1"
+msgstr "Заглавие 1"
+
+msgid "Heading 2"
+msgstr "Заглавие 2"
+
+msgid "Heading 3"
+msgstr "Заглавие 3"
+
+msgid "Heading 4"
+msgstr "Заглавие 4"
+
+msgid "Heading 5"
+msgstr "Заглавие 5"
+
+msgid "Heading 6"
+msgstr "Заглавие 6"
+
+msgid "Height"
+msgstr "Височина"
+
+msgid "Image URL"
+msgstr "URL на изображение"
+
+msgid "Insert"
+msgstr "Вмъкни"
+
+msgid "Insert column left"
+msgstr "Вмъкни колона вляво"
+
+msgid "Insert column right"
+msgstr "Вмъкни колона вдясно"
+
+msgid "Insert image"
+msgstr "Вмъкни изображение"
+
+msgid "Insert link"
+msgstr "Вмъкни връзка"
+
+msgid "Insert row above"
+msgstr "Вмъкни ред отгоре"
+
+msgid "Insert row below"
+msgstr "Вмъкни ред отдолу"
+
+msgid "Insert table"
+msgstr "Вмъкни таблица"
+
+msgid "Italic"
+msgstr "Курсив"
+
+msgid "Justify"
+msgstr "Двустранно"
+
+msgid "Link URL"
+msgstr "URL на връзка"
+
+msgid "Link text"
+msgstr "Текст на връзка"
+
+msgid "Merge cells"
+msgstr "Обедини клетки"
+
+msgid "Middle"
+msgstr "Среда"
+
+msgid "New window"
+msgstr "Нов прозорец"
+
+msgid "Numbered list"
+msgstr "Номериран списък"
+
+msgid "Paragraph"
+msgstr "Параграф"
+
+msgid "Parent frame (_parent)"
+msgstr "Родителска рамка (_parent)"
+
+msgid "Preformatted"
+msgstr "Преформатиран"
+
+msgid "Redo"
+msgstr "Повтори"
+
+msgid "Rows"
+msgstr "Редове"
+
+msgid "Same frame (_self)"
+msgstr "Същата рамка (_self)"
+
+msgid "Same window"
+msgstr "Същият прозорец"
+
+msgid "Save"
+msgstr "Запиши"
+
+msgid "Select"
+msgstr "Избери"
+
+msgid "Select Image"
+msgstr "Избери изображение"
+
+msgid "Select file"
+msgstr "Избери файл"
+
+msgid "Split cell"
+msgstr "Раздели клетка"
+
+msgid "Strikethrough"
+msgstr "Зачеркнат"
+
+msgid "Styles"
+msgstr "Стилове"
+
+msgid "Subscript"
+msgstr "Долен индекс"
+
+msgid "Superscript"
+msgstr "Горен индекс"
+
+msgid "Table"
+msgstr "Таблица"
+
+msgid "Table properties"
+msgstr "Свойства на таблицата"
+
+msgid "Target"
+msgstr "Цел"
+
+msgid "Text align"
+msgstr "Хоризонтално подравняване"
+
+msgid "Title"
+msgstr "Заглавие"
+
+msgid "Top"
+msgstr "Горе"
+
+msgid "Top frame (_top)"
+msgstr "Горна рамка (_top)"
+
+msgid "Underline"
+msgstr "Подчертан"
+
+msgid "Undo"
+msgstr "Отмени"
+
+msgid "Vertical align"
+msgstr "Вертикално подравняване"
+
+msgid "Width"
+msgstr "Ширина"

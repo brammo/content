@@ -8,7 +8,9 @@ CakePHP 5 plugin (`Brammo/Content`) for view helpers and reusable template eleme
 |------|---------|
 | `src/ContentPlugin.php` | Plugin class; all Cake hooks disabled |
 | `src/View/Helper/` | Date, Image, Video, Flag helpers |
-| `templates/element/` | masonry, select2, sticksy, lightgallery |
+| `templates/element/` | masonry, select2, sticksy, lightgallery, og, editor |
+| `webroot/css`, `webroot/js/` | Editor assets (`Brammo/Content.editor`) |
+| `resources/locales/` | `brammo/content` translations |
 | `tests/TestCase/` | PHPUnit tests mirroring `src/` |
 | `tests/test_app/` | Minimal Cake app for `WWW_ROOT` and bootstrap |
 | `doc/` | User-facing helper/element documentation |
@@ -50,6 +52,14 @@ composer analyse
 2. `tests/TestCase/View/Helper/{Name}HelperTest.php`
 3. `doc/{Name}Helper.md` and link from `doc/Helpers.md`
 4. Update `README.md` Quick Start if user-facing
+
+## HTML editor
+
+- Element: `Brammo/Content.editor` (`templates/element/editor.php`)
+- Assets: `webroot/js/editor.js`, `webroot/css/editor.css`
+- Config (host `Configure::write`, plugin bootstrap stays off): `Content.Editor.height`, `cleanOnPaste`, `statusBar`, `tableClass`
+- File browsing is off unless the element receives both `imagesUrl` and `filesUrl`. Do not reference `FileBrowser` in the default script
+- In `editor.js`, hide link/image browse buttons when `options.fileBrowser` is missing
 
 ## Adding an element
 
