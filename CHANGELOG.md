@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+- **masonry** element - Load imagesLoaded 5.0.0 from jsDelivr instead of an unpinned unpkg URL
+
 ## [1.4.0] - 2026-10-06
 
 ### Added

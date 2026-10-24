@@ -86,7 +86,7 @@ The element automatically includes from CDN:
 
 **JavaScript:**
 - `masonry-layout@4.2.2/dist/masonry.pkgd.min.js` (jsdelivr)
-- `imagesloaded@5/imagesloaded.pkgd.min.js` (unpkg)
+- `imagesloaded@5.0.0/imagesloaded.pkgd.min.js` (jsDelivr)
 
 ## How It Works
 

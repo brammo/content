@@ -68,7 +68,7 @@ class MasonryElementTest extends TestCase
 
         // Check JS files are added
         $this->assertStringContainsString('masonry-layout@4.2.2/dist/masonry.pkgd.min.js', $scriptBlock);
-        $this->assertStringContainsString('imagesloaded@5/imagesloaded.pkgd.min.js', $scriptBlock);
+        $this->assertStringContainsString('imagesloaded@5.0.0/imagesloaded.pkgd.min.js', $scriptBlock);
 
         // Check initialization with selector
         $this->assertStringContainsString('.gallery', $scriptBlock);
@@ -104,8 +104,8 @@ class MasonryElementTest extends TestCase
         $this->assertStringContainsString('cdn.jsdelivr.net', $scriptBlock);
         $this->assertStringContainsString('masonry.pkgd.min.js', $scriptBlock);
 
-        // Verify imagesLoaded from unpkg CDN
-        $this->assertStringContainsString('unpkg.com', $scriptBlock);
+        // Verify imagesLoaded from jsDelivr CDN
+        $this->assertStringContainsString('cdn.jsdelivr.net/npm/imagesloaded', $scriptBlock);
         $this->assertStringContainsString('imagesloaded.pkgd.min.js', $scriptBlock);
     }
 
@@ -119,7 +119,7 @@ class MasonryElementTest extends TestCase
         $this->View->element('Brammo/Content.masonry', ['selector' => '.masonry-container']);
 
         $scriptBlock = $this->View->fetch('script');
-        $this->assertStringContainsString("imagesLoaded('.masonry-container', function(){", $scriptBlock);
+        $this->assertStringContainsString("imagesLoaded(\".masonry-container\", function(){", $scriptBlock);
     }
 
     /**
@@ -147,6 +147,21 @@ class MasonryElementTest extends TestCase
         $this->View->element('Brammo/Content.masonry', ['selector' => '.items']);
 
         $scriptBlock = $this->View->fetch('script');
-        $this->assertStringContainsString("document.querySelector('.items')", $scriptBlock);
+        $this->assertStringContainsString('document.querySelector(".items")', $scriptBlock);
+    }
+
+    /**
+     * Test selectors with quotes are JSON-encoded into the inline script
+     *
+     * @return void
+     */
+    public function testSelectorWithQuotesIsEncoded(): void
+    {
+        $this->View->element('Brammo/Content.masonry', ['selector' => "[data-role='grid']"]);
+        $scriptBlock = $this->View->fetch('script');
+
+        $this->assertStringContainsString('"[data-role=\\u0027grid\\u0027]"', $scriptBlock);
+
+        $this->assertStringNotContainsString("[data-role='grid']", $scriptBlock);
     }
 }
