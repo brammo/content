@@ -150,4 +150,30 @@ class DateHelperTest extends TestCase
         $this->assertStringContainsString('2026', $result);
         $this->assertStringContainsString('–', $result);
     }
+
+    /**
+     * Test range with two times on the same day renders a single date
+     *
+     * @return void
+     */
+    public function testRangeSameDayDifferentTimes(): void
+    {
+        $result = $this->DateHelper->range('2025-03-05 10:00', '2025-03-05 18:00');
+
+        $this->assertSame($this->DateHelper->nice('2025-03-05'), $result);
+        $this->assertStringNotContainsString('–', $result);
+    }
+
+    /**
+     * Test range swaps reversed start and end dates
+     *
+     * @return void
+     */
+    public function testRangeReversedDates(): void
+    {
+        $this->assertSame(
+            $this->DateHelper->range('2025-06-10', '2025-06-15'),
+            $this->DateHelper->range('2025-06-15', '2025-06-10'),
+        );
+    }
 }

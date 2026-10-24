@@ -11,10 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **ImageHelper** - Return the original path when the cache directory cannot be created or is not writable, instead of throwing `RuntimeException`
 - **ImageHelper** - Regenerate a cached image when the source file is newer
+- **DateHelper** - `range()` swaps reversed start and end dates
 - **masonry** element - Load imagesLoaded 5.0.0 from jsDelivr instead of an unpinned unpkg URL
+
 ### Fixed
 
 - **ImageHelper** - Reject paths with `..` segments so reads and cache writes stay inside the webroot
+- **DateHelper** - `range()` renders two times on the same day as a single date
 - **lightgallery**, **masonry**, **select2**, **sticksy** elements - JSON-encode selectors in inline scripts so quoted selectors work
 
 ## [1.4.0] - 2026-10-06

@@ -48,9 +48,13 @@ echo $this->Date->nice('2025-01-01');
 Returns a formatted date range with smart formatting based on whether dates share the same month or year.
 
 ```php
-// Same date - returns single date
+// Same date - returns single date (times on the same day count as the same date)
 echo $this->Date->range('2025-06-15', '2025-06-15');
 // Returns: 15 June 2025
+
+// Reversed dates are swapped
+echo $this->Date->range('2025-06-15', '2025-06-10');
+// Returns: 10 – 15 June 2025
 
 // Same month - compact format
 echo $this->Date->range('2025-06-10', '2025-06-15');

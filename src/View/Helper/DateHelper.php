@@ -59,7 +59,12 @@ class DateHelper extends Helper
         $startDate = new DateTime($startDate);
         $endDate = new DateTime($endDate);
 
-        if ($startDate == $endDate) {
+        if ($endDate < $startDate) {
+            [$startDate, $endDate] = [$endDate, $startDate];
+        }
+
+        // Compare calendar days only so two times on the same day render as one date
+        if ($startDate->i18nFormat('yyyy-MM-dd') === $endDate->i18nFormat('yyyy-MM-dd')) {
             return $this->nice($startDate);
         }
 
