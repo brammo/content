@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **SeoHelper** - Escape `<` and `>` in `jsonLd()` output so values cannot close the `<script>` tag
+- **HTML editor** - Drop `javascript:` and other unsafe URL schemes from pasted HTML and the link and image dialogs; strip event handlers, `srcdoc`, scripts, and unsafe URLs from HTML loaded from the textarea or source mode
 - **ImageHelper** - Reject paths with `..` segments so reads and cache writes stay inside the webroot
 - **DateHelper** - `range()` renders two times on the same day as a single date
 - **FlagHelper** - Escape the CSS `<link>` attributes

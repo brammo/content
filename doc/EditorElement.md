@@ -35,7 +35,11 @@ Configure::write('Content.Editor', [
 | `statusBar` | `true` | Status bar with the clickable element path at the cursor |
 | `tableClass` | `''` | CSS class prefilled when inserting a table |
 
-View variables passed to the element override `Content.Editor`.
+View variables passed to the element override `Content.Editor`. Controller view variables with the same names (`height`, `folder`, …) also apply, because CakePHP elements see all view variables.
+
+## Content sanitising
+
+Links and images only keep `http:`, `https:`, `mailto:`, `tel:`, and relative URLs; other schemes such as `javascript:` are removed. This applies to pasted HTML, the link and image dialogs, and HTML loaded from the textarea or source mode, where inline event handlers (`onclick`, `onerror`, …), `srcdoc`, and `<script>`, `<object>`, `<embed>`, `<base>`, `<meta>`, and `<link>` are removed as well. Iframes (for example video embeds) are kept when their `src` is safe. This protects the editing page; still sanitise stored HTML on the server before rendering it to visitors.
 
 ## File browsing
 

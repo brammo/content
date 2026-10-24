@@ -67,6 +67,20 @@ const HtmlEditor = (function() {
         'border-left': true,
     };
 
+    const SAFE_URL_SCHEMES = { 'http:': true, 'https:': true, 'mailto:': true, 'tel:': true };
+
+    // URL-bearing attributes checked when HTML is loaded from the textarea
+    const URL_ATTRS = {
+        href: true, src: true, action: true, formaction: true, data: true,
+        'xlink:href': true, poster: true, background: true,
+    };
+
+    // Removed when HTML is loaded from the textarea: they run code or change the editing page
+    const LOAD_DROP_TAGS = {
+        SCRIPT: true, BASE: true, META: true, LINK: true, OBJECT: true, EMBED: true,
+        ANIMATE: true, SET: true,
+    };
+
     const TABLE_GRID_SIZE = 10;
     const HISTORY_LIMIT = 100;
     const HISTORY_DEBOUNCE = 400;
@@ -455,6 +469,54 @@ const HtmlEditor = (function() {
     }
 
     /**
+     * Allow http(s), mailto, tel, and relative URLs. Data URLs pass only for images.
+     *
+     * @param {string} url
+     * @param {boolean} allowDataImage
+     * @returns {boolean}
+     */
+    function isSafeUrl(url, allowDataImage) {
+        // Browsers ignore control characters and spaces inside the scheme, e.g. "java\tscript:"
+        const value = String(url || '').replace(/[\u0000- \u007f]/g, '');
+        const match = value.match(/^([a-z][a-z0-9+.-]*):/i);
+        if (!match) {
+            return true;
+        }
+
+        if (SAFE_URL_SCHEMES[match[1].toLowerCase() + ':']) {
+            return true;
+        }
+
+        return Boolean(allowDataImage) && /^data:image\//i.test(value);
+    }
+
+    /**
+     * Remove scripts, event handlers, and unsafe URLs from HTML loaded into the editor.
+     *
+     * @param {DocumentFragment} root
+     */
+    function sanitizeLoadedFragment(root) {
+        const elements = Array.prototype.slice.call(root.querySelectorAll('*'));
+        elements.forEach(function(el) {
+            const tag = el.nodeName.toUpperCase();
+            if (LOAD_DROP_TAGS[tag]) {
+                if (el.parentNode) {
+                    el.parentNode.removeChild(el);
+                }
+                return;
+            }
+
+            Array.prototype.slice.call(el.attributes).forEach(function(attr) {
+                const name = attr.name.toLowerCase();
+                const unsafeUrl = URL_ATTRS[name] && !isSafeUrl(attr.value, tag === 'IMG' && name === 'src');
+                if (name.indexOf('on') === 0 || name === 'srcdoc' || unsafeUrl) {
+                    el.removeAttribute(attr.name);
+                }
+            });
+        });
+    }
+
+    /**
      * @param {HTMLTextAreaElement} textarea
      * @param {Object} options
      */
@@ -543,7 +605,7 @@ const HtmlEditor = (function() {
         this.body = document.createElement('div');
         this.body.className = 'html-editor-body';
         this.body.contentEditable = 'true';
-        this.body.innerHTML = this.textarea.value;
+        this.setBodyHtml(this.textarea.value);
         this.body.setAttribute('role', 'textbox');
         this.body.setAttribute('aria-multiline', 'true');
         wrapper.insertBefore(this.body, this.textarea);
@@ -1809,6 +1871,11 @@ const HtmlEditor = (function() {
             }
         });
 
+        const urlAttr = tag === 'A' ? 'href' : (tag === 'IMG' ? 'src' : '');
+        if (urlAttr && el.hasAttribute(urlAttr) && !isSafeUrl(el.getAttribute(urlAttr), tag === 'IMG')) {
+            el.removeAttribute(urlAttr);
+        }
+
         if (tag === 'IMG') {
             const parts = [];
             if (keptWidth) {
@@ -1980,7 +2047,7 @@ const HtmlEditor = (function() {
      */
     HtmlEditor.prototype.applyLinkProperties = function(anchor, props) {
         const url = (props.url || '').trim();
-        if (!url) {
+        if (!url || !isSafeUrl(url, false)) {
             return;
         }
 
@@ -2013,7 +2080,7 @@ const HtmlEditor = (function() {
      */
     HtmlEditor.prototype.insertLinkElement = function(props) {
         const url = (props.url || '').trim();
-        if (!url) {
+        if (!url || !isSafeUrl(url, false)) {
             return;
         }
 
@@ -2178,7 +2245,7 @@ const HtmlEditor = (function() {
      */
     HtmlEditor.prototype.applyImageProperties = function(img, props) {
         const src = (props.src || '').trim();
-        if (!src) {
+        if (!src || !isSafeUrl(src, true)) {
             return;
         }
 
@@ -2221,7 +2288,7 @@ const HtmlEditor = (function() {
      */
     HtmlEditor.prototype.insertImageElement = function(props) {
         const src = (props.src || '').trim();
-        if (!src) {
+        if (!src || !isSafeUrl(src, true)) {
             return;
         }
 
@@ -2389,7 +2456,7 @@ const HtmlEditor = (function() {
             }
 
             const src = form.elements.src.value.trim();
-            if (!src) {
+            if (!src || !isSafeUrl(src, true)) {
                 form.elements.src.focus();
                 return;
             }
@@ -2671,7 +2738,7 @@ const HtmlEditor = (function() {
             }
 
             const url = form.elements.url.value.trim();
-            if (!url) {
+            if (!url || !isSafeUrl(url, false)) {
                 form.elements.url.focus();
                 return;
             }
@@ -4072,7 +4139,7 @@ const HtmlEditor = (function() {
 
     HtmlEditor.prototype.toggleSource = function() {
         if (this.sourceMode) {
-            this.body.innerHTML = this.textarea.value;
+            this.setBodyHtml(this.textarea.value);
             this.sourceWrap.hidden = true;
             this.textarea.setAttribute('aria-hidden', 'true');
             this.body.hidden = false;
@@ -4587,6 +4654,18 @@ const HtmlEditor = (function() {
             sourceBtn.classList.toggle('active', disable);
             sourceBtn.setAttribute('aria-pressed', disable ? 'true' : 'false');
         }
+    };
+
+    /**
+     * Parse HTML inertly, sanitise it, then show it in the editing area.
+     *
+     * @param {string} html
+     */
+    HtmlEditor.prototype.setBodyHtml = function(html) {
+        const template = document.createElement('template');
+        template.innerHTML = html;
+        sanitizeLoadedFragment(template.content);
+        this.body.replaceChildren(template.content);
     };
 
     HtmlEditor.prototype.sync = function() {
