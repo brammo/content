@@ -114,6 +114,8 @@ Processed images are cached with the following path structure:
 
 The original directory structure is preserved to avoid filename collisions from different folders.
 
+A cached image is regenerated when the source file is newer than the cached copy.
+
 ### Supported Formats
 
 | Format | Extension |
@@ -129,7 +131,8 @@ The original directory structure is preserved to avoid filename collisions from 
 
 - If the source image doesn't exist, the original path is returned
 - If processing fails, the original path is returned
-- If the cache directory is not writable, a `RuntimeException` is thrown
+- If the cache directory cannot be created or is not writable, the original path is returned
+- Paths containing `..` segments are returned unchanged without processing, so reads and cache writes stay inside the webroot
 
 ### Example Usage in Templates
 

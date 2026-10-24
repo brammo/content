@@ -279,6 +279,80 @@ class ImageHelperTest extends TestCase
     }
 
     /**
+     * Test paths with parent-directory segments are returned unchanged and not processed
+     *
+     * @return void
+     */
+    public function testParentDirectorySegmentsAreRejected(): void
+    {
+        $helper = new ImageHelper(new View(), ['tempFolder' => '/thumb-test']);
+        $path = '/../webroot/images/test.png';
+
+        $this->assertSame($path, $helper->resize($path, 51, 51));
+        $this->assertSame('/images/../images/test.png', $helper->crop('/images/../images/test.png', 51));
+        $this->assertDirectoryDoesNotExist(WWW_ROOT . 'thumb-test/51x51');
+        $this->assertDirectoryDoesNotExist(WWW_ROOT . 'thumb-test/51x51c');
+    }
+
+    /**
+     * Test an unwritable cache directory returns the original path instead of throwing
+     *
+     * @return void
+     */
+    public function testUnwritableCacheDirectoryReturnsOriginal(): void
+    {
+        $cacheDir = WWW_ROOT . 'thumb-test/52x52/images';
+        if (!is_dir($cacheDir)) {
+            mkdir($cacheDir, 0755, true);
+        }
+        chmod($cacheDir, 0555);
+
+        try {
+            if (is_writable($cacheDir)) {
+                $this->markTestSkipped('Cannot make directory read-only (running as root?).');
+            }
+
+            $helper = new ImageHelper(new View(), ['tempFolder' => '/thumb-test']);
+            $this->assertSame('/images/test.png', $helper->resize('/images/test.png', 52, 52));
+        } finally {
+            chmod($cacheDir, 0755);
+            $this->removeEmptyCacheDirs($cacheDir);
+        }
+    }
+
+    /**
+     * Test a cached image older than its source is regenerated
+     *
+     * @return void
+     */
+    public function testStaleCacheIsRegenerated(): void
+    {
+        if (!extension_loaded('gd')) {
+            $this->markTestSkipped('GD extension not available.');
+        }
+
+        $helper = new ImageHelper(new View(), ['driver' => 'gd', 'tempFolder' => '/thumb-test']);
+        $cachePath = $helper->resize('/images/test.png', 53, 53);
+        $cacheFullPath = WWW_ROOT . ltrim($cachePath, '/');
+        $sourceMtime = (int)filemtime(WWW_ROOT . 'images/test.png');
+
+        try {
+            $this->assertFileExists($cacheFullPath);
+            touch($cacheFullPath, $sourceMtime - 60);
+            clearstatcache();
+
+            $this->assertSame($cachePath, $helper->resize('/images/test.png', 53, 53));
+            clearstatcache();
+            $this->assertGreaterThanOrEqual($sourceMtime, filemtime($cacheFullPath));
+        } finally {
+            if (is_file($cacheFullPath)) {
+                unlink($cacheFullPath);
+            }
+            $this->removeEmptyCacheDirs(dirname($cacheFullPath));
+        }
+    }
+
+    /**
      * @return bool
      */
     private function isVipsAvailableForTest(): bool

@@ -127,6 +127,11 @@ class ImageHelper extends Helper
      */
     protected function process(string $path, int $width, int $height, string $method, ?string $format): string
     {
+        // Reject parent-directory segments so reads and cache writes stay inside webroot
+        if (in_array('..', explode('/', str_replace('\\', '/', $path)), true)) {
+            return $path;
+        }
+
         $webroot = $this->getWebrootPath();
         $sourcePath = $webroot . $path;
 
@@ -143,15 +148,15 @@ class ImageHelper extends Helper
         $cachePath = $this->getCachePath($path, $width, $height, $method, $outputFormat);
         $cacheFullPath = $webroot . $cachePath;
 
-        // Return cached version if exists
-        if (is_file($cacheFullPath)) {
+        // Return cached version if it exists and is not older than the source
+        if (is_file($cacheFullPath) && filemtime($cacheFullPath) >= filemtime($sourcePath)) {
             return $cachePath;
         }
 
-        $this->ensureDirectory(dirname($cacheFullPath));
-
         // Process image
         try {
+            $this->ensureDirectory(dirname($cacheFullPath));
+
             $manager = $this->getImageManager();
             $image = $manager->read($sourcePath);
 
