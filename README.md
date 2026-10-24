@@ -7,7 +7,7 @@ A [CakePHP](https://cakephp.org/) plugin for content manipulation including imag
 ## Requirements
 
 - PHP 8.2+
-- CakePHP 5.0+
+- CakePHP 5.3+
 
 ## Documentation
 

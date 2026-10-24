@@ -4,7 +4,11 @@ The Content plugin provides reusable view elements for common JavaScript functio
 
 ## Security
 
-Elements accept CSS selectors (e.g. `selector`, `itemSelector`) that are output into inline JavaScript. Pass **static, trusted selectors only** (e.g. `.gallery`, `#sidebar`). Do not pass raw user input — that can lead to XSS.
+Elements accept CSS selectors (e.g. `selector`, `itemSelector`) that are output into inline JavaScript as JSON strings, so quotes such as `[data-role='grid']` are safe. Still pass **static, trusted selectors only** (e.g. `.gallery`, `#sidebar`): jQuery's `$()` turns a string that looks like HTML into elements, so raw user input can lead to XSS.
+
+## View variables
+
+Like any CakePHP element, these elements also see the view variables set by the controller. An optional element variable you do not pass (for example `$description` or `$image` in `og`, `$height` in `editor`) falls back to a view variable of the same name when one exists. Pass `null` explicitly, or call `SeoHelper::openGraph()` directly, when the page sets view variables with those names for other purposes.
 
 ## Select2
 

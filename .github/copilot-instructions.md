@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-CakePHP 5.x plugin providing view helpers for content manipulation: image processing, date formatting, video embedding, and country flags. Uses PHP 8.2+ with strict typing.
+CakePHP 5.3+ plugin providing view helpers for content manipulation (image processing, date formatting, video embedding, country flags, SEO meta tags) and reusable template elements. Uses PHP 8.2+ with strict typing.
 
 ## Architecture
 

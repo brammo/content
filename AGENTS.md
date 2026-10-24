@@ -7,7 +7,7 @@ CakePHP 5 plugin (`Brammo/Content`) for view helpers and reusable template eleme
 | Path | Purpose |
 |------|---------|
 | `src/ContentPlugin.php` | Plugin class; all Cake hooks disabled |
-| `src/View/Helper/` | Date, Image, Video, Flag helpers |
+| `src/View/Helper/` | Date, Image, Video, Flag, Seo helpers |
 | `templates/element/` | masonry, select2, sticksy, lightgallery, og, editor |
 | `webroot/css`, `webroot/js/` | Editor assets (`Brammo/Content.editor`) |
 | `resources/locales/` | `brammo/content` translations |
@@ -33,7 +33,7 @@ composer cs-check
 composer analyse
 ```
 
-`composer check` runs tests and code style. Use `composer cs-fix` only when fixing style locally.
+`composer check` runs tests, code style, and static analysis (what CI runs). Use `composer cs-fix` only when fixing style locally.
 
 ## ImageHelper
 
@@ -42,7 +42,8 @@ composer analyse
   - crop: `{tempFolder}/{W}x{H}c/...`
   - fit: `{tempFolder}/{W}x{H}f/...`
 - **Auto driver** (when `driver` is `auto`): **vips → imagick → gd**
-- Missing source file or processing error: return original web path (no exception to callers)
+- Missing source file, unwritable cache folder, or processing error: return original web path (no exception to callers)
+- Paths with `..` segments are returned unchanged; cached files are regenerated when the source is newer
 - Requires `WWW_ROOT` (defined in host app or `tests/test_app/webroot/`)
 - Test fixture: `tests/test_app/webroot/images/test.png` — regenerate with `composer generate-test-image`
 
