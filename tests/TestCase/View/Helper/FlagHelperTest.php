@@ -179,6 +179,38 @@ class FlagHelperTest extends TestCase
     }
 
     /**
+     * Test a custom cssPath without cssIntegrity omits the default integrity hash
+     *
+     * @return void
+     */
+    public function testCustomCssPathDropsDefaultIntegrity(): void
+    {
+        $view = new View();
+        new FlagHelper($view, ['cssPath' => 'https://example.com/flags.css']);
+
+        $cssBlock = $view->fetch('css');
+
+        $this->assertStringContainsString('href="https://example.com/flags.css"', $cssBlock);
+        $this->assertStringNotContainsString('integrity=', $cssBlock);
+    }
+
+    /**
+     * Test CSS link attributes are escaped
+     *
+     * @return void
+     */
+    public function testCssAttributesAreEscaped(): void
+    {
+        $view = new View();
+        new FlagHelper($view, ['cssPath' => 'https://example.com/flags.css"><script>x</script>']);
+
+        $cssBlock = $view->fetch('css');
+
+        $this->assertStringNotContainsString('<script>', $cssBlock);
+        $this->assertStringContainsString('&quot;&gt;&lt;script&gt;', $cssBlock);
+    }
+
+    /**
      * Test default configuration values
      *
      * @return void

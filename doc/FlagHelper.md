@@ -46,7 +46,7 @@ $this->loadHelper('Brammo/Content.Flag', [
 | Option | Default | Description |
 |--------|---------|-------------|
 | `cssPath` | jsDelivr CDN URL | URL to the flag-icons CSS file |
-| `cssIntegrity` | SRI hash | Subresource integrity hash for security |
+| `cssIntegrity` | SRI hash | Subresource integrity hash for security. Dropped when you set a custom `cssPath` without `cssIntegrity`, because the default hash only matches the default file. Set to `null` to omit it |
 | `cssCrossorigin` | `anonymous` | CORS setting for the CSS resource |
 
 ## CSS Block

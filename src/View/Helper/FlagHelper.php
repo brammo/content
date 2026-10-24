@@ -6,6 +6,8 @@ namespace Brammo\Content\View\Helper;
 
 use Cake\View\Helper;
 
+use function Cake\Core\h;
+
 /**
  * Flag Helper
  *
@@ -37,10 +39,22 @@ class FlagHelper extends Helper
     {
         parent::initialize($config);
 
+        // The default integrity hash only matches the default CDN file
+        if (isset($config['cssPath']) && !array_key_exists('cssIntegrity', $config)) {
+            $this->setConfig('cssIntegrity', null);
+        }
+
         // Load CSS for flag icons
-        $css = '<link rel="stylesheet" href="' . $this->getConfig('cssPath') .
-            '" integrity="' . $this->getConfig('cssIntegrity') .
-            '" crossorigin="' . $this->getConfig('cssCrossorigin') . '">';
+        $css = '<link rel="stylesheet" href="' . h((string)$this->getConfig('cssPath')) . '"';
+        $integrity = (string)$this->getConfig('cssIntegrity');
+        if ($integrity !== '') {
+            $css .= ' integrity="' . h($integrity) . '"';
+        }
+        $crossorigin = (string)$this->getConfig('cssCrossorigin');
+        if ($crossorigin !== '') {
+            $css .= ' crossorigin="' . h($crossorigin) . '"';
+        }
+        $css .= '>';
         $this->getView()->append('css', $css);
     }
 
