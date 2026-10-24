@@ -9,6 +9,7 @@
 
 // Default selector if not provided
 $selector = $selector ?? '.select2';
+$jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 
 $this->Html->css(
     [
@@ -22,7 +23,7 @@ $this->Html->script('https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2
 <?php $this->append('script') ?>
     <script>
 		$(function(){
-			$('<?= $selector ?>').select2({
+			$(<?= json_encode((string)$selector, $jsonFlags) ?>).select2({
 				width: '100%',
 				theme: 'bootstrap-5'
 			});

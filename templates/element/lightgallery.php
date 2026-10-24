@@ -17,6 +17,8 @@ if (!isset($itemSelector)) {
     return;
 }
 
+$jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
+
 $this->Html->css(
     [
         'https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/css/lightgallery.min.css',
@@ -36,8 +38,8 @@ $this->Html->script(
 ?>
 <?php $this->append('script') ?>
     <script>
-        lightGallery(document.querySelector('<?= $selector ?>'), {
-            selector: '<?= $itemSelector ?>',
+        lightGallery(document.querySelector(<?= json_encode((string)$selector, $jsonFlags) ?>), {
+            selector: <?= json_encode((string)$itemSelector, $jsonFlags) ?>,
             download: false,
             plugins: [lgZoom, lgThumbnail],
             speed: 500

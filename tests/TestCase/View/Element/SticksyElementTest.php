@@ -164,4 +164,19 @@ class SticksyElementTest extends TestCase
         $scriptBlock = $this->View->fetch('script');
         $this->assertStringContainsString('.sticksy({})', $scriptBlock);
     }
+
+    /**
+     * Test selectors with quotes are JSON-encoded into the inline script
+     *
+     * @return void
+     */
+    public function testSelectorWithQuotesIsEncoded(): void
+    {
+        $this->View->element('Brammo/Content.sticksy', ['selector' => "[data-role='grid']"]);
+        $scriptBlock = $this->View->fetch('script');
+
+        $this->assertStringContainsString('"[data-role=\\u0027grid\\u0027]"', $scriptBlock);
+
+        $this->assertStringNotContainsString("[data-role='grid']", $scriptBlock);
+    }
 }

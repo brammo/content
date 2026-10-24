@@ -12,6 +12,7 @@ if (!isset($selector)) {
 
 // Default options to empty array
 $options = $options ?? [];
+$jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 
 // Optional topSpacing parameter
 if (isset($topSpacing)) {
@@ -23,7 +24,7 @@ $this->Html->script('https://cdn.jsdelivr.net/npm/sticksy@0.2.0/dist/sticksy.min
 <?php $this->append('script') ?>
     <script>
         $(function(){
-            $('<?= $selector ?>').sticksy(<?= json_encode($options, JSON_FORCE_OBJECT) ?>);
+            $(<?= json_encode((string)$selector, $jsonFlags) ?>).sticksy(<?= json_encode($options, JSON_FORCE_OBJECT | $jsonFlags) ?>);
         });
     </script>
 <?php $this->end() ?>

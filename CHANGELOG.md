@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **masonry** element - Load imagesLoaded 5.0.0 from jsDelivr instead of an unpinned unpkg URL
+### Fixed
+
+- **lightgallery**, **masonry**, **select2**, **sticksy** elements - JSON-encode selectors in inline scripts so quoted selectors work
 
 ## [1.4.0] - 2026-10-06
 

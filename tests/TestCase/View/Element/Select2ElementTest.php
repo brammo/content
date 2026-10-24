@@ -148,4 +148,19 @@ class Select2ElementTest extends TestCase
         // Verify Bootstrap 5 theme is applied
         $this->assertStringContainsString("theme: 'bootstrap-5'", $scriptBlock);
     }
+
+    /**
+     * Test selectors with quotes are JSON-encoded into the inline script
+     *
+     * @return void
+     */
+    public function testSelectorWithQuotesIsEncoded(): void
+    {
+        $this->View->element('Brammo/Content.select2', ['selector' => "[data-role='grid']"]);
+        $scriptBlock = $this->View->fetch('script');
+
+        $this->assertStringContainsString('"[data-role=\\u0027grid\\u0027]"', $scriptBlock);
+
+        $this->assertStringNotContainsString("[data-role='grid']", $scriptBlock);
+    }
 }

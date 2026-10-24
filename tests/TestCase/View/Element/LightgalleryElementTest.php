@@ -115,7 +115,7 @@ class LightgalleryElementTest extends TestCase
 
         $scriptBlock = $this->View->fetch('script');
         $this->assertStringContainsString('#photo-gallery', $scriptBlock);
-        $this->assertStringContainsString("selector: 'a'", $scriptBlock);
+        $this->assertStringContainsString('selector: "a"', $scriptBlock);
     }
 
     /**
@@ -181,6 +181,22 @@ class LightgalleryElementTest extends TestCase
         ]);
 
         $scriptBlock = $this->View->fetch('script');
-        $this->assertStringContainsString("document.querySelector('.photos')", $scriptBlock);
+        $this->assertStringContainsString('document.querySelector(".photos")', $scriptBlock);
+    }
+
+    /**
+     * Test selectors with quotes are JSON-encoded into the inline script
+     *
+     * @return void
+     */
+    public function testSelectorWithQuotesIsEncoded(): void
+    {
+        $this->View->element('Brammo/Content.lightgallery', ['selector' => "[data-role='grid']", 'itemSelector' => '.item']);
+        $scriptBlock = $this->View->fetch('script');
+
+        $this->assertStringContainsString('"[data-role=\\u0027grid\\u0027]"', $scriptBlock);
+        $this->assertStringContainsString('selector: ".item"', $scriptBlock);
+
+        $this->assertStringNotContainsString("[data-role='grid']", $scriptBlock);
     }
 }
