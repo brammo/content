@@ -368,6 +368,22 @@ class SeoHelperTest extends TestCase
     }
 
     /**
+     * Test jsonLd escapes HTML so values cannot close the script tag
+     *
+     * @return void
+     */
+    public function testJsonLdEscapesScriptTags(): void
+    {
+        $result = $this->Seo->jsonLd([
+            '@type' => 'FAQPage',
+            'name' => '</script><script>alert(1)</script>',
+        ]);
+
+        $this->assertSame(1, substr_count($result, '</script>'));
+        $this->assertStringContainsString('\\u003C/script\\u003E', $result);
+    }
+
+    /**
      * Test jsonLd multiple schemas
      *
      * @return void

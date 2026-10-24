@@ -16,6 +16,8 @@ Include the element in your layout `<head>`. The element delegates to `SeoHelper
 
 **Note:** The `$title` variable is required. An `InvalidArgumentException` will be thrown if it is missing or empty.
 
+**Note:** Optional variables you do not pass fall back to view variables with the same name (`$description`, `$image`, `$url`, …), because CakePHP elements see all view variables. If the controller sets those names for other purposes, pass them explicitly (`null` omits the tag) or call `$this->Seo->openGraph([...])` directly.
+
 ## Example
 
 ```php

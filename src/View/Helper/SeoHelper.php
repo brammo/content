@@ -309,7 +309,7 @@ class SeoHelper extends Helper
         foreach ($schemas as $schema) {
             $json = json_encode(
                 $schema,
-                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR,
+                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_THROW_ON_ERROR,
             );
             $output .= '<script type="application/ld+json">' . $json . '</script>';
         }

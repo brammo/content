@@ -15,7 +15,8 @@ CakePHP 5.x plugin providing view helpers for content manipulation: image proces
   - `DateHelper` - Date formatting using CakePHP's i18n (Chronos)
   - `VideoHelper` - Video embedding via dereuromark/media-embed
   - `FlagHelper` - Country flag icons via lipis/flag-icons CDN
-- `templates/element/` - Reusable elements for JS libraries (lightgallery, masonry, select2, sticksy)
+  - `SeoHelper` - Canonical, robots, Open Graph/Twitter, and JSON-LD tags
+- `templates/element/` - Reusable elements: lightgallery, masonry, select2, sticksy (JS libraries), og (Open Graph via `SeoHelper`), editor (HTML editor, `webroot/js/editor.js`)
 
 ### Key Patterns
 
