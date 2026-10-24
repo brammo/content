@@ -2,7 +2,7 @@
 
 Contenteditable WYSIWYG editor for `textarea` fields. Link and image dialogs accept a URL. File and image browsing is not included; a host plugin can pass browse URLs when it provides a `FileBrowser`.
 
-Requires Bootstrap 5 (modals and toolbar) and [Bootstrap Icons](https://icons.getbootstrap.com/).
+Requires Bootstrap 5 (modals and toolbar). Icons are inline SVGs from [Tabler Icons](https://tabler.io/icons) (MIT), so no icon font is needed.
 
 ## Usage
 

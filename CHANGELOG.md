@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **HTML editor** - Toolbar and dialog icons are inline [Tabler Icons](https://tabler.io/icons) SVGs; Bootstrap Icons is no longer required
 - **ImageHelper** - Return the original path when the cache directory cannot be created or is not writable, instead of throwing `RuntimeException`
 - **ImageHelper** - Regenerate a cached image when the source file is newer
 - **FlagHelper** - Omit the default `integrity` hash when a custom `cssPath` is set without `cssIntegrity`; omit `integrity` and `crossorigin` when empty

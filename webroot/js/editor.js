@@ -4,7 +4,8 @@
  * Lightweight contenteditable WYSIWYG editor.
  * Syncs content to the underlying textarea on input, blur, and form submit.
  *
- * Dependencies: Bootstrap 5, Bootstrap Icons.
+ * Dependencies: Bootstrap 5.
+ * Icons: Tabler Icons (MIT), https://tabler.io/icons
  * Optional: FileBrowser when options.fileBrowser is set (file and image picker).
  */
 const HtmlEditor = (function() {
@@ -65,6 +66,29 @@ const HtmlEditor = (function() {
         'border-right': true,
         'border-bottom': true,
         'border-left': true,
+    };
+
+    // Tabler Icons 3.49.0 outline (MIT), inner SVG elements only
+    const ICONS = {
+        'arrow-back-up': '<path d="M9 14l-4 -4l4 -4"/><path d="M5 10h11a4 4 0 1 1 0 8h-1"/>',
+        'arrow-forward-up': '<path d="M15 14l4 -4l-4 -4"/><path d="M19 10h-11a4 4 0 1 0 0 8h1"/>',
+        bold: '<path d="M7 5h6a3.5 3.5 0 0 1 0 7h-6l0 -7"/><path d="M13 12h1a3.5 3.5 0 0 1 0 7h-7v-7"/>',
+        italic: '<path d="M11 5l6 0"/><path d="M7 19l6 0"/><path d="M14 5l-4 14"/>',
+        underline: '<path d="M7 5v5a5 5 0 0 0 10 0v-5"/><path d="M5 19h14"/>',
+        'align-left': '<path d="M4 6l16 0"/><path d="M4 12l10 0"/><path d="M4 18l14 0"/>',
+        'align-center': '<path d="M4 6l16 0"/><path d="M8 12l8 0"/><path d="M6 18l12 0"/>',
+        'align-right': '<path d="M4 6l16 0"/><path d="M10 12l10 0"/><path d="M6 18l14 0"/>',
+        'align-justified': '<path d="M4 6l16 0"/><path d="M4 12l16 0"/><path d="M4 18l12 0"/>',
+        list: '<path d="M9 6l11 0"/><path d="M9 12l11 0"/><path d="M9 18l11 0"/><path d="M5 6l0 .01"/><path d="M5 12l0 .01"/><path d="M5 18l0 .01"/>',
+        'list-numbers': '<path d="M11 6h9"/><path d="M11 12h9"/><path d="M12 18h8"/><path d="M4 16a2 2 0 1 1 4 0c0 .591 -.5 1 -1 1.5l-3 2.5h4"/><path d="M6 10v-6l-2 2"/>',
+        link: '<path d="M9 15l6 -6"/><path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464"/><path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463"/>',
+        photo: '<path d="M15 8h.01"/><path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12"/><path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5"/><path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3"/>',
+        eraser: '<path d="M19 20h-10.5l-4.21 -4.3a1 1 0 0 1 0 -1.41l10 -10a1 1 0 0 1 1.41 0l5 5a1 1 0 0 1 0 1.41l-9.2 9.3"/><path d="M18 13.3l-6.3 -6.3"/>',
+        html: '<path d="M7 8l-4 4l4 4"/><path d="M17 8l4 4l-4 4"/><path d="M14 4l-4 16"/>',
+        braces: '<path d="M7 4a2 2 0 0 0 -2 2v3a2 3 0 0 1 -2 3a2 3 0 0 1 2 3v3a2 2 0 0 0 2 2"/><path d="M17 4a2 2 0 0 1 2 2v3a2 3 0 0 0 2 3a2 3 0 0 0 -2 3v3a2 2 0 0 1 -2 2"/>',
+        table: '<path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14"/><path d="M3 10h18"/><path d="M10 3v18"/>',
+        'folder-open': '<path d="M5 19l2.757 -7.351a1 1 0 0 1 .936 -.649h12.307a1 1 0 0 1 .986 1.164l-.996 5.211a2 2 0 0 1 -1.964 1.625h-14.026a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v2"/>',
+        'arrow-left': '<path d="M5 12l14 0"/><path d="M5 12l6 6"/><path d="M5 12l6 -6"/>',
     };
 
     const SAFE_URL_SCHEMES = { 'http:': true, 'https:': true, 'mailto:': true, 'tel:': true };
@@ -469,6 +493,18 @@ const HtmlEditor = (function() {
     }
 
     /**
+     * Inline SVG markup for an ICONS entry. Uses currentColor so it follows button states.
+     *
+     * @param {string} name
+     * @returns {string}
+     */
+    function icon(name) {
+        return '<svg class="html-editor-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"' +
+            ' stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"' +
+            ' aria-hidden="true" focusable="false">' + (ICONS[name] || '') + '</svg>';
+    }
+
+    /**
      * Allow http(s), mailto, tel, and relative URLs. Data URLs pass only for images.
      *
      * @param {string} url
@@ -724,42 +760,38 @@ const HtmlEditor = (function() {
         toolbar.setAttribute('role', 'toolbar');
 
         toolbar.appendChild(this.buildButtonGroup([
-            { action: 'undo', icon: 'bi-arrow-counterclockwise', title: labels.undo },
-            { action: 'redo', icon: 'bi-arrow-clockwise', title: labels.redo },
+            { action: 'undo', icon: 'arrow-back-up', title: labels.undo },
+            { action: 'redo', icon: 'arrow-forward-up', title: labels.redo },
         ]));
         toolbar.appendChild(this.buildBlockSelect(labels));
         toolbar.appendChild(this.buildButtonGroup([
-            { cmd: 'bold', icon: 'bi-type-bold', title: labels.bold },
-            { cmd: 'italic', icon: 'bi-type-italic', title: labels.italic },
-            { cmd: 'underline', icon: 'bi-type-underline', title: labels.underline },
-            { cmd: 'strikeThrough', icon: 'bi-type-strikethrough', title: labels.strikethrough },
-            { cmd: 'subscript', icon: 'bi-subscript', title: labels.subscript },
-            { cmd: 'superscript', icon: 'bi-superscript', title: labels.superscript },
-            { action: 'wrapCode', icon: 'bi-code', title: labels.code },
+            { cmd: 'bold', icon: 'bold', title: labels.bold },
+            { cmd: 'italic', icon: 'italic', title: labels.italic },
+            { cmd: 'underline', icon: 'underline', title: labels.underline },
         ]));
         toolbar.appendChild(this.buildButtonGroup([
-            { action: 'alignLeft', icon: 'bi-text-left', title: labels.alignLeft },
-            { action: 'alignCenter', icon: 'bi-text-center', title: labels.alignCenter },
-            { action: 'alignRight', icon: 'bi-text-right', title: labels.alignRight },
-            { action: 'alignJustify', icon: 'bi-justify', title: labels.alignJustify },
+            { action: 'alignLeft', icon: 'align-left', title: labels.alignLeft },
+            { action: 'alignCenter', icon: 'align-center', title: labels.alignCenter },
+            { action: 'alignRight', icon: 'align-right', title: labels.alignRight },
+            { action: 'alignJustify', icon: 'align-justified', title: labels.alignJustify },
         ]));
         toolbar.appendChild(this.buildButtonGroup([
-            { cmd: 'insertUnorderedList', icon: 'bi-list-ul', title: labels.unorderedList },
-            { cmd: 'insertOrderedList', icon: 'bi-list-ol', title: labels.orderedList },
+            { cmd: 'insertUnorderedList', icon: 'list', title: labels.unorderedList },
+            { cmd: 'insertOrderedList', icon: 'list-numbers', title: labels.orderedList },
         ]));
         toolbar.appendChild(this.buildButtonGroup([
-            { action: 'insertLink', icon: 'bi-link-45deg', title: labels.link },
-            { action: 'insertImage', icon: 'bi-image', title: labels.imageBrowse },
+            { action: 'insertLink', icon: 'link', title: labels.link },
+            { action: 'insertImage', icon: 'photo', title: labels.imageBrowse },
         ]));
         toolbar.appendChild(this.buildTableMenu(labels));
         toolbar.appendChild(this.buildButtonGroup([
-            { action: 'clearFormat', icon: 'bi-eraser', title: labels.clearFormat },
+            { action: 'clearFormat', icon: 'eraser', title: labels.clearFormat },
         ]));
         toolbar.appendChild(this.buildButtonGroup([
-            { action: 'toggleSource', icon: 'bi-code-slash', title: labels.source },
+            { action: 'toggleSource', icon: 'html', title: labels.source },
         ]));
         this.sourceGroup = this.buildButtonGroup([
-            { action: 'formatSource', icon: 'bi-braces', title: labels.formatSource },
+            { action: 'formatSource', icon: 'braces', title: labels.formatSource },
         ]);
         this.sourceGroup.classList.add('d-none');
         toolbar.appendChild(this.sourceGroup);
@@ -834,7 +866,7 @@ const HtmlEditor = (function() {
             button.type = 'button';
             button.className = 'btn btn-outline-secondary';
             button.title = btn.title || '';
-            button.innerHTML = '<i class="bi ' + btn.icon + '"></i>';
+            button.innerHTML = icon(btn.icon);
 
             button.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -874,7 +906,7 @@ const HtmlEditor = (function() {
         toggle.setAttribute('aria-expanded', 'false');
         toggle.title = labels.table || 'Table';
         toggle.dataset.action = 'tableMenu';
-        toggle.innerHTML = '<i class="bi bi-table"></i>';
+        toggle.innerHTML = icon('table');
         group.appendChild(toggle);
 
         const menu = document.createElement('div');
@@ -2348,7 +2380,7 @@ const HtmlEditor = (function() {
                                 '<div class="input-group">' +
                                     '<input type="text" class="form-control" name="src" required>' +
                                     '<button type="button" class="btn btn-outline-secondary html-editor-image-browse-btn">' +
-                                        '<i class="bi bi-folder2-open"></i> ' +
+                                        icon('folder-open') + ' ' +
                                         '<span class="html-editor-image-browse-label"></span>' +
                                     '</button>' +
                                 '</div>' +
@@ -2380,7 +2412,7 @@ const HtmlEditor = (function() {
                     '<div class="html-editor-image-browse-panel d-none">' +
                         '<div class="modal-body pb-0">' +
                             '<button type="button" class="btn btn-sm btn-outline-secondary html-editor-image-browse-back">' +
-                                '<i class="bi bi-arrow-left"></i> ' +
+                                icon('arrow-left') + ' ' +
                                 '<span class="html-editor-image-browse-back-label"></span>' +
                             '</button>' +
                         '</div>' +
@@ -2624,7 +2656,7 @@ const HtmlEditor = (function() {
                                 '<div class="input-group">' +
                                     '<input type="text" class="form-control" name="url" required>' +
                                     '<button type="button" class="btn btn-outline-secondary html-editor-link-browse-btn">' +
-                                        '<i class="bi bi-folder2-open"></i> ' +
+                                        icon('folder-open') + ' ' +
                                         '<span class="html-editor-link-browse-label"></span>' +
                                     '</button>' +
                                 '</div>' +
@@ -2656,7 +2688,7 @@ const HtmlEditor = (function() {
                     '<div class="html-editor-link-browse-panel d-none">' +
                         '<div class="modal-body pb-0">' +
                             '<button type="button" class="btn btn-sm btn-outline-secondary html-editor-link-browse-back">' +
-                                '<i class="bi bi-arrow-left"></i> ' +
+                                icon('arrow-left') + ' ' +
                                 '<span class="html-editor-link-browse-back-label"></span>' +
                             '</button>' +
                         '</div>' +
