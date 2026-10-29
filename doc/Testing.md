@@ -24,7 +24,7 @@ php tests/bin/generate-test-image.php
 
 ## Code Quality
 
-Run code style checks:
+Run code style checks (`src`, `tests`, and `templates`):
 
 ```bash
 composer cs-check

@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SeoHelper** - `canonical()` and the `openGraph()` `og:url` default to the current URL **without the query string**. Pass the URL explicitly to keep query parameters
 - **SeoHelper** - New `currentUrl()` method; `jsonLd()` accepts `@graph` documents without a top-level `@type`; the `openGraph()` missing-title message now reads ``Missing required `title` option for openGraph()``
 - **HTML editor** - `destroy()` copies content back, removes the editor UI, and restores the textarea
+- Code style checks now cover `templates/`; CI runs PHP 8.4 and an imagick-only job; `composer.json` no longer hard-codes `version`
 
 ## [1.5.0] - 2026-10-24
 

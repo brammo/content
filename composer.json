@@ -15,7 +15,6 @@
         }
     ],
     "license": "MIT",
-    "version": "1.5.0",
     "prefer-stable": true,
     "require": {
         "php": ">=8.2",
@@ -50,8 +49,8 @@
             "@stan",
             "@psalm"
          ],
-        "cs-check": "phpcs --colors -p -n src tests",
-        "cs-fix": "phpcbf --colors -p src tests",
+        "cs-check": "phpcs --colors -p -n src tests templates",
+        "cs-fix": "phpcbf --colors -p src tests templates",
         "test": "phpunit --colors=always",
         "stan": "phpstan analyse",
         "stan-baseline": "phpstan analyse --generate-baseline",
