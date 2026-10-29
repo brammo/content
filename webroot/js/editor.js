@@ -89,6 +89,8 @@ const HtmlEditor = (function() {
         table: '<path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14"/><path d="M3 10h18"/><path d="M10 3v18"/>',
         'folder-open': '<path d="M5 19l2.757 -7.351a1 1 0 0 1 .936 -.649h12.307a1 1 0 0 1 .986 1.164l-.996 5.211a2 2 0 0 1 -1.964 1.625h-14.026a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v2"/>',
         'arrow-left': '<path d="M5 12l14 0"/><path d="M5 12l6 6"/><path d="M5 12l6 -6"/>',
+        maximize: '<path d="M4 8v-2a2 2 0 0 1 2 -2h2"/><path d="M4 16v2a2 2 0 0 0 2 2h2"/><path d="M16 4h2a2 2 0 0 1 2 2v2"/><path d="M16 20h2a2 2 0 0 0 2 -2v-2"/>',
+        minimize: '<path d="M15 19v-2a2 2 0 0 1 2 -2h2"/><path d="M15 5v2a2 2 0 0 0 2 2h2"/><path d="M5 15h2a2 2 0 0 1 2 2v2"/><path d="M5 9h2a2 2 0 0 0 2 -2v-2"/>',
     };
 
     const SAFE_URL_SCHEMES = { 'http:': true, 'https:': true, 'mailto:': true, 'tel:': true };
@@ -572,6 +574,7 @@ const HtmlEditor = (function() {
         }
 
         this.sourceMode = false;
+        this.maximized = false;
         this.sourceWrap = null;
         this.sourceGutter = null;
         this.sourceHighlight = null;
@@ -608,6 +611,7 @@ const HtmlEditor = (function() {
         this.onSourceKeyDown = this.onSourceKeyDown.bind(this);
         this.onSourceInput = this.onSourceInput.bind(this);
         this.onSourceScroll = this.onSourceScroll.bind(this);
+        this.onMaximizedKeyDown = this.onMaximizedKeyDown.bind(this);
 
         window.BrammoEditor.instances[this.id] = this;
         this.init();
@@ -804,6 +808,9 @@ const HtmlEditor = (function() {
         ]);
         this.sourceGroup.classList.add('d-none');
         toolbar.appendChild(this.sourceGroup);
+        toolbar.appendChild(this.buildButtonGroup([
+            { action: 'toggleMaximize', icon: 'maximize', title: labels.maximize || 'Maximize' },
+        ]));
 
         return toolbar;
     };
@@ -1452,7 +1459,64 @@ const HtmlEditor = (function() {
             case 'formatSource':
                 this.formatSource();
                 break;
+            case 'toggleMaximize':
+                this.toggleMaximize();
+                break;
         }
+    };
+
+    /**
+     * Toggle the editor between its inline size and the full browser window.
+     *
+     * @param {boolean} [force]
+     */
+    HtmlEditor.prototype.toggleMaximize = function(force) {
+        const maximize = typeof force === 'boolean' ? force : !this.maximized;
+        if (maximize === this.maximized || !this.wrapper) {
+            return;
+        }
+
+        this.maximized = maximize;
+        this.wrapper.classList.toggle('is-maximized', maximize);
+        document.documentElement.classList.toggle('html-editor-maximized', maximize);
+
+        if (maximize) {
+            document.addEventListener('keydown', this.onMaximizedKeyDown);
+        } else {
+            document.removeEventListener('keydown', this.onMaximizedKeyDown);
+        }
+
+        const labels = this.options.labels || {};
+        const btn = this.toolbar.querySelector('button[data-action="toggleMaximize"]');
+        if (btn) {
+            btn.innerHTML = icon(maximize ? 'minimize' : 'maximize');
+            btn.title = maximize ? (labels.restore || 'Restore') : (labels.maximize || 'Maximize');
+            btn.classList.toggle('active', maximize);
+            btn.setAttribute('aria-pressed', maximize ? 'true' : 'false');
+        }
+
+        if (this.sourceMode) {
+            this.textarea.focus();
+        } else {
+            this.body.focus();
+        }
+    };
+
+    /**
+     * Escape leaves the maximized view unless a dialog or dropdown is open.
+     *
+     * @param {KeyboardEvent} e
+     */
+    HtmlEditor.prototype.onMaximizedKeyDown = function(e) {
+        if (e.key !== 'Escape' || e.defaultPrevented) {
+            return;
+        }
+        if (document.querySelector('.modal.show') || this.wrapper.querySelector('.dropdown-menu.show')) {
+            return;
+        }
+
+        e.preventDefault();
+        this.toggleMaximize(false);
     };
 
     /**
@@ -4733,7 +4797,8 @@ const HtmlEditor = (function() {
         const disable = this.sourceMode;
         this.toolbar.querySelectorAll('button, select').forEach(function(el) {
             const action = el.dataset.action;
-            el.disabled = disable && action !== 'toggleSource' && action !== 'formatSource';
+            el.disabled = disable && action !== 'toggleSource' && action !== 'formatSource' &&
+                action !== 'toggleMaximize';
         });
 
         if (this.sourceGroup) {
@@ -4741,7 +4806,7 @@ const HtmlEditor = (function() {
         }
 
         if (disable) {
-            this.toolbar.querySelectorAll('button.active').forEach(function(btn) {
+            this.toolbar.querySelectorAll('button.active:not([data-action="toggleMaximize"])').forEach(function(btn) {
                 btn.classList.remove('active');
                 btn.setAttribute('aria-pressed', 'false');
             });
@@ -4782,6 +4847,7 @@ const HtmlEditor = (function() {
         }
 
         this.sync();
+        this.toggleMaximize(false);
         this.destroyed = true;
         this.cancelHistoryCommit();
         if (this.sourceRenderFrame) {

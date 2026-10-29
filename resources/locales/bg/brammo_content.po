@@ -169,6 +169,9 @@ msgstr "URL на връзка"
 msgid "Link text"
 msgstr "Текст на връзка"
 
+msgid "Maximize"
+msgstr "Цял екран"
+
 msgid "Merge cells"
 msgstr "Обедини клетки"
 
@@ -195,6 +198,9 @@ msgstr "Преформатиран"
 
 msgid "Redo"
 msgstr "Повтори"
+
+msgid "Restore"
+msgstr "Възстанови размера"
 
 msgid "Right"
 msgstr "Дясно"

@@ -361,6 +361,37 @@
     border-bottom-right-radius: 0;
 }
 
+/* Maximized: fill the browser window, below Bootstrap modals (z-index 1055) */
+
+html.html-editor-maximized,
+html.html-editor-maximized body {
+    overflow: hidden;
+}
+
+.html-editor.is-maximized {
+    position: fixed;
+    inset: 0;
+    z-index: 1045;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bs-body-bg);
+}
+
+.html-editor.is-maximized .html-editor-toolbar,
+.html-editor.is-maximized .html-editor-statusbar {
+    flex: 0 0 auto;
+    border-radius: 0;
+}
+
+.html-editor.is-maximized .html-editor-body,
+.html-editor.is-maximized .html-editor-source-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    border-radius: 0;
+}
+
 /* Status bar */
 
 .html-editor-statusbar {

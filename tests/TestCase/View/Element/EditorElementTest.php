@@ -95,6 +95,7 @@ class EditorElementTest extends TestCase
         $this->assertStringContainsString('"imageAlignLeft":"Left"', $script);
         $this->assertStringContainsString('"imageClass":"CSS class"', $script);
         $this->assertStringContainsString('"cellClass":"CSS class"', $script);
+        $this->assertStringContainsString('"maximize":"Maximize"', $script);
     }
 
     /**
