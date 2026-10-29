@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Open Graph and Twitter Card meta tags element
  *
