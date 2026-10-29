@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.6.0] - 2026-10-29
+
 ### Fixed
 
 - **ImageHelper** - Resolve source paths without a leading slash (`images/photo.jpg`) instead of returning them unprocessed
