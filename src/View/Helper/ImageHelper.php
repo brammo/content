@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Brammo\Content\View\Helper;
 
+use Cake\Core\Configure;
+use Cake\Log\Log;
 use Cake\View\Helper;
 use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 use Intervention\Image\Drivers\Imagick\Driver as ImagickDriver;
@@ -19,16 +21,15 @@ use Intervention\Image\Interfaces\ImageInterface;
  * Supports GD, ImageMagick, and libvips via Intervention Image library.
  *
  * @extends \Cake\View\Helper<\Cake\View\View>
- * @property \Cake\View\Helper\UrlHelper $Url
  */
 class ImageHelper extends Helper
 {
     /**
-     * List of helpers used by this helper
+     * Output formats the helper can encode
      *
-     * @var array<int|string, array<string, mixed>|string>
+     * @var array<string>
      */
-    protected array $helpers = ['Url'];
+    protected const FORMATS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp'];
 
     /**
      * Default configuration
@@ -133,19 +134,22 @@ class ImageHelper extends Helper
         }
 
         $webroot = $this->getWebrootPath();
-        $sourcePath = $webroot . $path;
+        $webPath = '/' . ltrim($path, '/');
+        $sourcePath = $webroot . $webPath;
 
         // Return original if source doesn't exist
         if (!is_file($sourcePath)) {
             return $path;
         }
 
-        // Determine output format
-        $outputFormat = $format ?? pathinfo($path, PATHINFO_EXTENSION);
-        $outputFormat = strtolower($outputFormat);
+        // Unsupported formats (e.g. svg, tiff) are not converted
+        $outputFormat = strtolower($format ?? pathinfo($webPath, PATHINFO_EXTENSION));
+        if (!in_array($outputFormat, self::FORMATS, true)) {
+            return $path;
+        }
 
         // Build cache path
-        $cachePath = $this->getCachePath($path, $width, $height, $method, $outputFormat);
+        $cachePath = $this->getCachePath($webPath, $width, $height, $method, $outputFormat);
         $cacheFullPath = $webroot . $cachePath;
 
         // Return cached version if it exists and is not older than the source
@@ -167,10 +171,22 @@ class ImageHelper extends Helper
                 default => $image,
             };
 
-            $this->saveImage($image, $cacheFullPath, $outputFormat);
+            // Write to a temporary file first so concurrent requests never see a partial image
+            $tempFullPath = sprintf('%s.%s.tmp.%s', $cacheFullPath, bin2hex(random_bytes(4)), $outputFormat);
+            $this->saveImage($image, $tempFullPath, $outputFormat);
+            if (!rename($tempFullPath, $cacheFullPath)) {
+                throw new \RuntimeException(sprintf('Failed to move cached image to: %s', $cacheFullPath));
+            }
 
             return $cachePath;
         } catch (\Throwable $e) {
+            if (isset($tempFullPath) && is_file($tempFullPath)) {
+                @unlink($tempFullPath);
+            }
+            if (Configure::read('debug')) {
+                Log::debug(sprintf('ImageHelper could not process %s: %s', $path, $e->getMessage()));
+            }
+
             // Return original path on any error
             return $path;
         }
@@ -259,19 +275,25 @@ class ImageHelper extends Helper
         string $method,
         string $format
     ): string {
-        $tempFolder = $this->getConfig('tempFolder');
+        $tempFolder = '/' . trim((string)$this->getConfig('tempFolder'), '/');
         $suffix = match ($method) {
             'crop' => 'c',
             'fit' => 'f',
             default => '',
         };
 
-        $dirname = ltrim(pathinfo($sourcePath, PATHINFO_DIRNAME), '/');
+        $dirname = trim(pathinfo($sourcePath, PATHINFO_DIRNAME), '/');
         $filename = pathinfo($sourcePath, PATHINFO_FILENAME);
         $sizeFolder = sprintf('%dx%d%s', $width, $height, $suffix);
 
         // Include original path structure: /thumb/100x100/images/products/photo.jpg
-        return sprintf('%s/%s/%s/%s.%s', $tempFolder, $sizeFolder, $dirname, $filename, $format);
+        $segments = [rtrim($tempFolder, '/'), $sizeFolder];
+        if ($dirname !== '' && $dirname !== '.') {
+            $segments[] = $dirname;
+        }
+        $segments[] = $filename . '.' . $format;
+
+        return implode('/', $segments);
     }
 
     /**
@@ -285,13 +307,7 @@ class ImageHelper extends Helper
             return $this->manager;
         }
 
-        $driver = $this->getConfig('driver');
-
-        if ($driver === 'auto') {
-            $driver = $this->detectDriver();
-        }
-
-        $driverInstance = $this->createDriver($driver);
+        $driverInstance = $this->createDriver($this->getDriverName());
 
         $this->manager = new ImageManager($driverInstance);
 
@@ -299,17 +315,33 @@ class ImageHelper extends Helper
     }
 
     /**
+     * Get the configured driver name, resolving 'auto' to the detected driver
+     *
+     * @return string Driver name
+     */
+    protected function getDriverName(): string
+    {
+        $driver = strtolower((string)$this->getConfig('driver'));
+
+        return $driver === 'auto' ? $this->detectDriver() : $driver;
+    }
+
+    /**
      * Create driver instance
      *
      * @param string $driver Driver name
      * @return \Intervention\Image\Interfaces\DriverInterface
+     * @throws \InvalidArgumentException If the driver name is unknown
      */
     protected function createDriver(string $driver): DriverInterface
     {
         return match ($driver) {
+            'gd' => new GdDriver(),
             'imagick' => new ImagickDriver(),
             'vips' => $this->createVipsDriver(),
-            default => new GdDriver(),
+            default => throw new \InvalidArgumentException(
+                sprintf('Unknown image driver "%s". Use auto, gd, imagick, or vips.', $driver)
+            ),
         };
     }
 
@@ -365,9 +397,10 @@ class ImageHelper extends Helper
     }
 
     /**
-     * Get webroot path from request or fallback to WWW_ROOT constant
+     * Get webroot path from the WWW_ROOT constant
      *
      * @return string Absolute path to webroot
+     * @throws \RuntimeException If WWW_ROOT is not defined
      */
     protected function getWebrootPath(): string
     {
@@ -407,12 +440,14 @@ class ImageHelper extends Helper
     /**
      * Get information about available image processing driver
      *
+     * `driver` is the configured driver, or the detected one when `driver` is 'auto'.
+     *
      * @return array{driver: string, available: array<string, bool>}
      */
     public function getDriverInfo(): array
     {
         return [
-            'driver' => $this->detectDriver(),
+            'driver' => $this->getDriverName(),
             'available' => [
                 'imagick' => extension_loaded('imagick'),
                 'vips' => $this->isVipsAvailable(),

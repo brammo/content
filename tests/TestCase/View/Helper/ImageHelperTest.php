@@ -66,8 +66,8 @@ class ImageHelperTest extends TestCase
      */
     public function testResizeProcessesExistingImage(): void
     {
-        if (!extension_loaded('gd') && !extension_loaded('imagick') && !$this->isVipsAvailableForTest()) {
-            $this->markTestSkipped('No image processing extension available.');
+        if (!extension_loaded('gd')) {
+            $this->markTestSkipped('GD extension not available.');
         }
 
         $view = new View();
@@ -254,6 +254,110 @@ class ImageHelperTest extends TestCase
     }
 
     /**
+     * Test cache path for a file in the webroot has no empty or dot directory segment
+     *
+     * @return void
+     */
+    public function testCachePathForRootLevelFile(): void
+    {
+        $reflection = new \ReflectionClass($this->Image);
+        $method = $reflection->getMethod('getCachePath');
+
+        $this->assertSame('/thumb/100x100/photo.jpg', $method->invoke($this->Image, '/photo.jpg', 100, 100, 'resize', 'jpg'));
+        $this->assertSame('/thumb/100x100c/photo.jpg', $method->invoke($this->Image, 'photo.jpg', 100, 100, 'crop', 'jpg'));
+    }
+
+    /**
+     * Test tempFolder without a leading slash or with a trailing slash is normalized
+     *
+     * @return void
+     */
+    public function testCachePathNormalizesTempFolder(): void
+    {
+        $helper = new ImageHelper(new View(), ['tempFolder' => 'cache/thumbs/']);
+        $reflection = new \ReflectionClass($helper);
+        $method = $reflection->getMethod('getCachePath');
+
+        $result = $method->invoke($helper, '/images/photo.jpg', 100, 100, 'resize', 'jpg');
+        $this->assertSame('/cache/thumbs/100x100/images/photo.jpg', $result);
+    }
+
+    /**
+     * Test a path without a leading slash is resolved against the webroot
+     *
+     * @return void
+     */
+    public function testResizePathWithoutLeadingSlash(): void
+    {
+        if (!extension_loaded('gd')) {
+            $this->markTestSkipped('GD extension not available.');
+        }
+
+        $helper = new ImageHelper(new View(), ['driver' => 'gd', 'tempFolder' => '/thumb-test']);
+        $result = $helper->resize('images/test.png', 54, 54);
+        $cacheFullPath = WWW_ROOT . 'thumb-test/54x54/images/test.png';
+
+        try {
+            $this->assertSame('/thumb-test/54x54/images/test.png', $result);
+            $this->assertFileExists($cacheFullPath);
+        } finally {
+            if (is_file($cacheFullPath)) {
+                unlink($cacheFullPath);
+            }
+            $this->removeEmptyCacheDirs(dirname($cacheFullPath));
+        }
+    }
+
+    /**
+     * Test unsupported output formats return the original path without processing
+     *
+     * @return void
+     */
+    public function testUnsupportedFormatReturnsOriginal(): void
+    {
+        $helper = new ImageHelper(new View(), ['tempFolder' => '/thumb-test']);
+
+        $this->assertSame('/images/test.png', $helper->resize('/images/test.png', 55, 55, 'tiff'));
+        $this->assertDirectoryDoesNotExist(WWW_ROOT . 'thumb-test/55x55');
+    }
+
+    /**
+     * Test an unknown driver name fails safely
+     *
+     * @return void
+     */
+    public function testUnknownDriverReturnsOriginal(): void
+    {
+        $helper = new ImageHelper(new View(), ['driver' => 'imagemagick', 'tempFolder' => '/thumb-test']);
+        $reflection = new \ReflectionClass($helper);
+        $method = $reflection->getMethod('createDriver');
+
+        try {
+            $this->assertSame('/images/test.png', $helper->resize('/images/test.png', 56, 56));
+            $this->assertFileDoesNotExist(WWW_ROOT . 'thumb-test/56x56/images/test.png');
+        } finally {
+            $this->removeEmptyCacheDirs(WWW_ROOT . 'thumb-test/56x56/images');
+        }
+
+        $this->expectException(\InvalidArgumentException::class);
+        $method->invoke($helper, 'imagemagick');
+    }
+
+    /**
+     * Test getDriverInfo reports the configured driver
+     *
+     * @return void
+     */
+    public function testGetDriverInfoReportsConfiguredDriver(): void
+    {
+        $helper = new ImageHelper(new View(), ['driver' => 'GD']);
+        $info = $helper->getDriverInfo();
+
+        $this->assertSame('gd', $info['driver']);
+        $this->assertSame(extension_loaded('gd'), $info['available']['gd']);
+    }
+
+    /**
      * Test driver detection priority: vips > imagick > gd
      *
      * @return void
@@ -350,15 +454,6 @@ class ImageHelperTest extends TestCase
             }
             $this->removeEmptyCacheDirs(dirname($cacheFullPath));
         }
-    }
-
-    /**
-     * @return bool
-     */
-    private function isVipsAvailableForTest(): bool
-    {
-        return extension_loaded('vips')
-            && class_exists('Intervention\\Image\\Drivers\\Vips\\Driver');
     }
 
     /**

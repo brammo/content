@@ -42,10 +42,13 @@ composer analyse
   - crop: `{tempFolder}/{W}x{H}c/...`
   - fit: `{tempFolder}/{W}x{H}f/...`
 - **Auto driver** (when `driver` is `auto`): **vips → imagick → gd**
-- Missing source file, unwritable cache folder, or processing error: return original web path (no exception to callers)
+- Missing source file, unsupported format (only jpg/jpeg/png/gif/webp/avif/bmp), unknown driver, unwritable cache folder, or processing error: return original web path (no exception to callers)
+- Source paths and `tempFolder` are normalized to a leading `/`; files in the webroot root cache as `{tempFolder}/{W}x{H}/{name}.{ext}`
+- Write thumbnails to a temp file and `rename()` them into place
 - Paths with `..` segments are returned unchanged; cached files are regenerated when the source is newer
 - Requires `WWW_ROOT` (defined in host app or `tests/test_app/webroot/`)
 - Test fixture: `tests/test_app/webroot/images/test.png` — regenerate with `composer generate-test-image`
+- Tests that force `driver => 'gd'` must skip when `gd` is not loaded (CI has an imagick-only job)
 
 ## Adding a helper
 

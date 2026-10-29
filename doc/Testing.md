@@ -10,7 +10,7 @@ composer test
 
 ## Test fixtures
 
-ImageHelper integration tests use a PNG under `tests/test_app/webroot/images/test.png`. Regenerate it with GD (requires the `gd` extension):
+ImageHelper integration tests use a PNG under `tests/test_app/webroot/images/test.png`. Tests that process images force the GD driver and are skipped when the `gd` extension is not loaded; install `gd` to run them. Regenerate the fixture with GD (requires the `gd` extension):
 
 ```bash
 composer generate-test-image

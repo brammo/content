@@ -30,8 +30,8 @@ $this->loadHelper('Brammo/Content.Image', [
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `tempFolder` | `/thumb` | Directory to store cached images (relative to webroot) |
-| `driver` | `auto` | Image processing driver. Auto-detection priority: vips > imagick > gd |
+| `tempFolder` | `/thumb` | Directory to store cached images (relative to webroot). Leading and trailing slashes are normalized |
+| `driver` | `auto` | Image processing driver (`auto`, `gd`, `imagick`, `vips`; case-insensitive). Auto-detection priority: vips > imagick > gd. An unknown name makes every call return the original path |
 | `backgroundColor` | `#ffffff` | Background fill color for the `fit` method (hex code) |
 
 ### Methods
@@ -68,7 +68,7 @@ echo $this->Image->crop('/images/photo.jpg', 100);
 
 #### fit()
 
-Fit image within dimensions and fill remaining space with background color.
+Fit image within dimensions and fill remaining space with background color. Larger images are scaled down to fit; smaller images are **not** scaled up, only centered and padded (unlike `resize()` and `crop()`, which do scale up).
 
 ```php
 // Fit within 300x200, pad with white background
@@ -89,7 +89,7 @@ Get information about available image processing drivers.
 $info = $this->Image->getDriverInfo();
 // Returns:
 // [
-//     'driver' => 'imagick',  // Currently selected driver
+//     'driver' => 'imagick',  // Configured driver, or the detected one when 'auto'
 //     'available' => [
 //         'imagick' => true,
 //         'vips' => false,
@@ -112,7 +112,9 @@ Processed images are cached with the following path structure:
 | crop | `c` | `/thumb/200x200c/images/products/photo.jpg` |
 | fit | `f` | `/thumb/200x200f/images/products/photo.jpg` |
 
-The original directory structure is preserved to avoid filename collisions from different folders.
+The original directory structure is preserved to avoid filename collisions from different folders. A file directly in the webroot (`/photo.jpg`) is cached as `/thumb/200x200/photo.jpg`.
+
+Source paths are resolved against the webroot with or without a leading slash: `images/photo.jpg` and `/images/photo.jpg` give the same cache file. The returned cache path always starts with `/`.
 
 A cached image is regenerated when the source file is newer than the cached copy.
 
@@ -127,12 +129,16 @@ A cached image is regenerated when the source file is newer than the cached copy
 | AVIF | `avif` |
 | BMP | `bmp` |
 
+Any other source extension (for example `svg` or `tiff`) or `$format` value is not converted: the original path is returned.
+
 ### Error Handling
 
 - If the source image doesn't exist, the original path is returned
 - If processing fails, the original path is returned
 - If the cache directory cannot be created or is not writable, the original path is returned
 - Paths containing `..` segments are returned unchanged without processing, so reads and cache writes stay inside the webroot
+- Images are written to a temporary file and then renamed, so concurrent requests never serve a partially written thumbnail
+- When `debug` is enabled, processing errors are logged at `debug` level
 
 ### Example Usage in Templates
 
