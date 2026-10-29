@@ -119,7 +119,7 @@ class MasonryElementTest extends TestCase
         $this->View->element('Brammo/Content.masonry', ['selector' => '.masonry-container']);
 
         $scriptBlock = $this->View->fetch('script');
-        $this->assertStringContainsString("imagesLoaded(\".masonry-container\", function(){", $scriptBlock);
+        $this->assertStringContainsString("imagesLoaded(container, function(){", $scriptBlock);
     }
 
     /**
@@ -163,5 +163,19 @@ class MasonryElementTest extends TestCase
         $this->assertStringContainsString('"[data-role=\\u0027grid\\u0027]"', $scriptBlock);
 
         $this->assertStringNotContainsString("[data-role='grid']", $scriptBlock);
+    }
+
+    /**
+     * Test the script waits for the DOM and skips a missing container
+     *
+     * @return void
+     */
+    public function testScriptGuardsMissingContainer(): void
+    {
+        $this->View->element('Brammo/Content.masonry', ['selector' => '.gallery']);
+
+        $scriptBlock = $this->View->fetch('script');
+        $this->assertStringContainsString("document.addEventListener('DOMContentLoaded'", $scriptBlock);
+        $this->assertStringContainsString('if (!container) {', $scriptBlock);
     }
 }

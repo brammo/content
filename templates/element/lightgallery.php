@@ -1,7 +1,7 @@
 <?php
 /**
  * Lightgallery element
- * 
+ *
  * @var \Cake\View\View $this
  * @var string $selector CSS selector for the gallery container
  * @var string $itemSelector CSS selector for the gallery items
@@ -9,12 +9,10 @@
 
 if (!isset($selector)) {
     throw new \InvalidArgumentException('Missing required $selector variable for lightgallery element');
-    return;
 }
 
 if (!isset($itemSelector)) {
     throw new \InvalidArgumentException('Missing required $itemSelector variable for lightgallery element');
-    return;
 }
 
 $jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
@@ -24,7 +22,7 @@ $this->Html->css(
         'https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/css/lightgallery.min.css',
         'https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/css/lg-zoom.min.css',
         'https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/css/lg-thumbnail.min.css'
-    ], 
+    ],
     ['block' => true]
 );
 $this->Html->script(
@@ -32,17 +30,23 @@ $this->Html->script(
         'https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/lightgallery.min.js',
         'https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/plugins/zoom/lg-zoom.min.js',
         'https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/plugins/thumbnail/lg-thumbnail.min.js'
-    ], 
+    ],
     ['block' => true]
 );
 ?>
 <?php $this->append('script') ?>
     <script>
-        lightGallery(document.querySelector(<?= json_encode((string)$selector, $jsonFlags) ?>), {
-            selector: <?= json_encode((string)$itemSelector, $jsonFlags) ?>,
-            download: false,
-            plugins: [lgZoom, lgThumbnail],
-            speed: 500
+        document.addEventListener('DOMContentLoaded', function() {
+            const gallery = document.querySelector(<?= json_encode((string)$selector, $jsonFlags) ?>);
+            if (!gallery) {
+                return;
+            }
+            lightGallery(gallery, {
+                selector: <?= json_encode((string)$itemSelector, $jsonFlags) ?>,
+                download: false,
+                plugins: [lgZoom, lgThumbnail],
+                speed: 500
+            });
         });
     </script>
 <?php $this->end() ?>

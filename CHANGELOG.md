@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SeoHelper** - `schemaBreadcrumbList()`, `schemaFAQPage()`, and `schemaProduct()` `aggregateRating` throw `InvalidArgumentException` for missing required keys instead of PHP warnings
 - **HTML editor** - Rendering the element twice no longer wraps a textarea in a second editor
 - **HTML editor** - `new HtmlEditor(textarea)` without options no longer throws
+- **lightgallery**, **masonry** elements - Wait for `DOMContentLoaded` and skip a missing container instead of throwing a JavaScript error
 ### Changed
 
 - **ImageHelper** - Unknown `driver` names (matched case-insensitively) no longer fall back to GD silently; processing returns the original path. `getDriverInfo()['driver']` reports the configured driver instead of always the detected one

@@ -1,14 +1,13 @@
 <?php
 /**
  * Masonry layout element
- * 
+ *
  * @var \Cake\View\View $this
  * @var string $selector CSS selector for the masonry container
  */
 
 if (!isset($selector)) {
     throw new \InvalidArgumentException('Missing required $selector variable for masonry element');
-    return;
 }
 
 $jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
@@ -23,9 +22,15 @@ $this->Html->script(
 ?>
 <?php $this->append('script') ?>
     <script>
-        imagesLoaded(<?= json_encode((string)$selector, $jsonFlags) ?>, function(){
-            new Masonry(document.querySelector(<?= json_encode((string)$selector, $jsonFlags) ?>), {
-                percentPosition: true
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.querySelector(<?= json_encode((string)$selector, $jsonFlags) ?>);
+            if (!container) {
+                return;
+            }
+            imagesLoaded(container, function(){
+                new Masonry(container, {
+                    percentPosition: true
+                });
             });
         });
     </script>

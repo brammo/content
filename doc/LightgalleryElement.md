@@ -104,6 +104,10 @@ The element automatically includes from CDN (jsdelivr):
 - `lightgallery@2.7.2/plugins/zoom/lg-zoom.min.js`
 - `lightgallery@2.7.2/plugins/thumbnail/lg-thumbnail.min.js`
 
+## How It Works
+
+The gallery is initialized after `DOMContentLoaded`. If no element matches `selector`, nothing happens (no JavaScript error), so the element can be included in a shared layout.
+
 ## View Blocks
 
 The element adds resources to the following view blocks:

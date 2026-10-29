@@ -199,4 +199,18 @@ class LightgalleryElementTest extends TestCase
 
         $this->assertStringNotContainsString("[data-role='grid']", $scriptBlock);
     }
+
+    /**
+     * Test the script waits for the DOM and skips a missing container
+     *
+     * @return void
+     */
+    public function testScriptGuardsMissingContainer(): void
+    {
+        $this->View->element('Brammo/Content.lightgallery', ['selector' => '.gallery', 'itemSelector' => 'a']);
+
+        $scriptBlock = $this->View->fetch('script');
+        $this->assertStringContainsString("document.addEventListener('DOMContentLoaded'", $scriptBlock);
+        $this->assertStringContainsString('if (!gallery) {', $scriptBlock);
+    }
 }

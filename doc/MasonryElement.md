@@ -90,12 +90,18 @@ The element automatically includes from CDN:
 
 ## How It Works
 
-The element uses `imagesLoaded` to wait for all images to load before initializing Masonry. This ensures correct positioning of grid items:
+After `DOMContentLoaded`, the element finds the container and uses `imagesLoaded` to wait for all images to load before initializing Masonry. This ensures correct positioning of grid items. If no element matches the selector, nothing happens (no JavaScript error):
 
 ```javascript
-imagesLoaded('.grid', function(){
-    new Masonry(document.querySelector('.grid'), {
-        percentPosition: true
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.querySelector('.grid');
+    if (!container) {
+        return;
+    }
+    imagesLoaded(container, function(){
+        new Masonry(container, {
+            percentPosition: true
+        });
     });
 });
 ```
