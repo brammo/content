@@ -557,6 +557,12 @@ const HtmlEditor = (function() {
      * @param {Object} options
      */
     function HtmlEditor(textarea, options) {
+        // Rendering the element twice must not wrap a textarea in a second editor
+        const existing = textarea.id && window.BrammoEditor.instances[textarea.id];
+        if (existing && !existing.destroyed) {
+            return existing;
+        }
+
         this.textarea = textarea;
         this.options = options || {};
         this.id = textarea.id || ('editor-' + Math.random().toString(36).slice(2, 9));
@@ -573,7 +579,7 @@ const HtmlEditor = (function() {
         this.sourceGroup = null;
         this.sourceRenderFrame = null;
         this.sourceObserver = null;
-        this.fileBrowser = options.fileBrowser || null;
+        this.fileBrowser = this.options.fileBrowser || null;
         this.imageDialogOpen = false;
         this.imageBrowseEmbedded = false;
         this.editingImage = null;
@@ -595,6 +601,8 @@ const HtmlEditor = (function() {
         this.explicitDivs = new WeakSet();
         this.form = null;
         this.onSubmit = null;
+        this.wrapper = null;
+        this.textareaSpellcheck = textarea.spellcheck;
         this.onKeyDown = this.onKeyDown.bind(this);
         this.onBeforeInput = this.onBeforeInput.bind(this);
         this.onSourceKeyDown = this.onSourceKeyDown.bind(this);
@@ -612,6 +620,7 @@ const HtmlEditor = (function() {
         wrapper.style.setProperty('--html-editor-height', (this.options.height || 500) + 'px');
         this.textarea.parentNode.insertBefore(wrapper, this.textarea);
         wrapper.appendChild(this.textarea);
+        this.wrapper = wrapper;
 
         this.imageTarget = document.createElement('div');
         this.imageTarget.id = 'editor-img-target-' + this.id;
@@ -4711,6 +4720,7 @@ const HtmlEditor = (function() {
             return;
         }
 
+        this.sync();
         this.destroyed = true;
         this.cancelHistoryCommit();
         if (this.sourceRenderFrame) {
@@ -4733,6 +4743,15 @@ const HtmlEditor = (function() {
             this.textarea.removeEventListener('input', this.onSourceInput);
             this.textarea.removeEventListener('scroll', this.onSourceScroll);
             this.textarea.removeEventListener('keydown', this.onSourceKeyDown);
+        }
+        // Put the textarea back where it was and remove the editor UI
+        if (this.wrapper && this.wrapper.parentNode) {
+            this.textarea.classList.remove('html-editor-source');
+            this.textarea.removeAttribute('aria-hidden');
+            this.textarea.spellcheck = this.textareaSpellcheck;
+            this.wrapper.parentNode.insertBefore(this.textarea, this.wrapper);
+            this.wrapper.parentNode.removeChild(this.wrapper);
+            this.wrapper = null;
         }
         delete window.BrammoEditor.instances[this.id];
     };

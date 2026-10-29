@@ -1,4 +1,5 @@
 <?php
+
 /**
  * HTML editor element
  *

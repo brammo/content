@@ -6,7 +6,7 @@ Requires Bootstrap 5 (modals and toolbar). Icons are inline SVGs from [Tabler Ic
 
 ## Usage
 
-Load the editor once per page, then give each rich-text field the `editor` class:
+Load the editor on the page, then give each rich-text field the `editor` class. Rendering the element more than once is safe: a textarea that already has an editor is not wrapped again.
 
 ```php
 echo $this->element('Brammo/Content.editor');
@@ -39,7 +39,16 @@ View variables passed to the element override `Content.Editor`. Controller view 
 
 ## Content sanitising
 
-Links and images only keep `http:`, `https:`, `mailto:`, `tel:`, and relative URLs; other schemes such as `javascript:` are removed. This applies to pasted HTML, the link and image dialogs, and HTML loaded from the textarea or source mode, where inline event handlers (`onclick`, `onerror`, …), `srcdoc`, and `<script>`, `<object>`, `<embed>`, `<base>`, `<meta>`, and `<link>` are removed as well. Iframes (for example video embeds) are kept when their `src` is safe. This protects the editing page; still sanitise stored HTML on the server before rendering it to visitors.
+Links and images only keep `http:`, `https:`, `mailto:`, `tel:`, and relative URLs; other schemes such as `javascript:` are removed. This applies to pasted HTML, the link and image dialogs, and HTML loaded from the textarea or source mode, where inline event handlers (`onclick`, `onerror`, …), `srcdoc`, and `<script>`, `<object>`, `<embed>`, `<base>`, `<meta>`, and `<link>` are removed as well. Iframes (for example video embeds) are kept when their `src` is safe. This protects the editing page only. If the form is submitted while source mode is active, the textarea's raw HTML is sent unchanged. Always sanitise stored HTML on the server (for example with HTML Purifier) before rendering it to visitors.
+
+## JavaScript API
+
+Each editor is registered in `window.BrammoEditor.instances` by textarea id. `new HtmlEditor(textarea, options)` returns the existing instance when that textarea already has an editor. `destroy()` copies the content back to the textarea, removes the toolbar and editing area, and restores the textarea to its original place.
+
+```javascript
+const editor = window.BrammoEditor.instances['body'];
+editor.destroy();
+```
 
 ## File browsing
 
