@@ -59,15 +59,27 @@ class SeoHelper extends Helper
     }
 
     /**
+     * Get the absolute URL of the current request without its query string.
+     *
+     * @return string Absolute URL
+     */
+    public function currentUrl(): string
+    {
+        $url = $this->Url->build(null, ['fullBase' => true]);
+
+        return explode('?', $url, 2)[0];
+    }
+
+    /**
      * Generate a canonical link tag.
      *
-     * @param string|null $url Canonical URL (defaults to current request URL)
+     * @param string|null $url Canonical URL (defaults to current request URL without query string)
      * @return string HTML link tag
      */
     public function canonical(?string $url = null): string
     {
         if ($url === null || $url === '') {
-            $url = $this->Url->build(null, ['fullBase' => true]);
+            $url = $this->currentUrl();
         } else {
             $url = $this->absoluteUrl($url);
         }
@@ -205,7 +217,7 @@ class SeoHelper extends Helper
     public function openGraph(array $options): string
     {
         if (!isset($options['title']) || $options['title'] === '') {
-            throw new InvalidArgumentException('Missing required $title variable for og element');
+            throw new InvalidArgumentException('Missing required `title` option for openGraph()');
         }
 
         $title = $options['title'];
@@ -216,7 +228,7 @@ class SeoHelper extends Helper
         $twitterSite = $options['twitterSite'] ?? $this->getConfig('twitterSite');
 
         if (!isset($options['url']) || $options['url'] === '') {
-            $url = $this->Url->build(null, ['fullBase' => true]);
+            $url = $this->currentUrl();
         } else {
             $url = $this->absoluteUrl($options['url']);
         }
@@ -528,10 +540,11 @@ class SeoHelper extends Helper
     public function schemaBreadcrumbList(array $items): array
     {
         $listItems = [];
-        foreach ($items as $position => $item) {
+        foreach (array_values($items) as $index => $item) {
+            $this->requireKeys($item, ['name', 'url'], 'BreadcrumbList item');
             $listItems[] = [
                 '@type' => 'ListItem',
-                'position' => $position + 1,
+                'position' => $index + 1,
                 'name' => $item['name'],
                 'item' => $this->absoluteUrl($item['url']),
             ];
@@ -587,6 +600,7 @@ class SeoHelper extends Helper
         }
 
         if (isset($options['aggregateRating']) && is_array($options['aggregateRating'])) {
+            $this->requireKeys($options['aggregateRating'], ['ratingValue', 'reviewCount'], 'aggregateRating');
             $schema['aggregateRating'] = [
                 '@type' => 'AggregateRating',
                 'ratingValue' => $options['aggregateRating']['ratingValue'],
@@ -611,6 +625,7 @@ class SeoHelper extends Helper
 
         $mainEntity = [];
         foreach ($items as $item) {
+            $this->requireKeys($item, ['question', 'answer'], 'FAQPage item');
             $mainEntity[] = [
                 '@type' => 'Question',
                 'name' => $item['question'],
@@ -767,12 +782,30 @@ class SeoHelper extends Helper
         $schemas = array_is_list($data) ? $data : [$data];
 
         foreach ($schemas as $schema) {
-            if (!is_array($schema) || !isset($schema['@type'])) {
-                throw new InvalidArgumentException('Each JSON-LD block must include an @type key');
+            if (!is_array($schema) || (!isset($schema['@type']) && !isset($schema['@graph']))) {
+                throw new InvalidArgumentException('Each JSON-LD block must include an @type or @graph key');
             }
         }
 
         /** @var array<int, array<string, mixed>> $schemas */
         return $schemas;
+    }
+
+    /**
+     * Ensure an item has the given keys.
+     *
+     * @param mixed $item Item to check
+     * @param array<string> $keys Required keys
+     * @param string $context Item description used in the exception message
+     * @return void
+     * @throws \InvalidArgumentException If the item is not an array or a key is missing
+     */
+    protected function requireKeys(mixed $item, array $keys, string $context): void
+    {
+        foreach ($keys as $key) {
+            if (!is_array($item) || !array_key_exists($key, $item)) {
+                throw new InvalidArgumentException(sprintf('%s requires a `%s` key', $context, $key));
+            }
+        }
     }
 }

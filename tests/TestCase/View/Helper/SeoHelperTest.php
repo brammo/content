@@ -6,6 +6,8 @@ namespace Brammo\Content\Test\TestCase\View\Helper;
 
 use Brammo\Content\View\Helper\SeoHelper;
 use Cake\Http\ServerRequest;
+use Cake\Http\ServerRequestFactory;
+use Cake\Routing\Router;
 use Cake\TestSuite\TestCase;
 use Cake\View\View;
 use InvalidArgumentException;
@@ -92,6 +94,34 @@ class SeoHelperTest extends TestCase
 
         $this->assertStringContainsString('rel="canonical"', $result);
         $this->assertStringContainsString('href="http://localhost/"', $result);
+    }
+
+    /**
+     * Test canonical and og:url defaults drop the query string
+     *
+     * @return void
+     */
+    public function testDefaultUrlDropsQueryString(): void
+    {
+        $request = ServerRequestFactory::fromGlobals(
+            ['REQUEST_URI' => '/articles/example?utm_source=news', 'HTTP_HOST' => 'localhost'],
+            ['utm_source' => 'news'],
+        );
+        $previous = Router::getRequest();
+        Router::setRequest($request);
+
+        try {
+            $seo = new SeoHelper(new View($request));
+
+            $this->assertSame('http://localhost/articles/example', $seo->currentUrl());
+            $this->assertStringContainsString('href="http://localhost/articles/example"', $seo->canonical());
+            $this->assertStringContainsString(
+                'content="http://localhost/articles/example"',
+                $seo->openGraph(['title' => 'Example']),
+            );
+        } finally {
+            Router::setRequest($previous ?? new ServerRequest());
+        }
     }
 
     /**
@@ -200,7 +230,7 @@ class SeoHelperTest extends TestCase
     public function testOpenGraphMissingTitleThrowsException(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Missing required $title variable for og element');
+        $this->expectExceptionMessage('Missing required `title` option for openGraph()');
 
         $this->Seo->openGraph([]);
     }
@@ -430,9 +460,24 @@ class SeoHelperTest extends TestCase
     public function testJsonLdMissingTypeThrowsException(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Each JSON-LD block must include an @type key');
+        $this->expectExceptionMessage('Each JSON-LD block must include an @type or @graph key');
 
         $this->Seo->jsonLd(['@context' => 'https://schema.org', 'name' => 'Test']);
+    }
+
+    /**
+     * Test jsonLd accepts an @graph document without a top-level @type
+     *
+     * @return void
+     */
+    public function testJsonLdGraph(): void
+    {
+        $result = $this->Seo->jsonLd([
+            '@context' => 'https://schema.org',
+            '@graph' => [['@type' => 'WebSite', 'name' => 'My Site']],
+        ]);
+
+        $this->assertStringContainsString('"@graph":[{"@type":"WebSite","name":"My Site"}]', $result);
     }
 
     /**
@@ -738,6 +783,61 @@ class SeoHelperTest extends TestCase
         $this->expectExceptionMessage('FAQPage items cannot be empty');
 
         $this->Seo->schemaFAQPage([]);
+    }
+
+    /**
+     * Test breadcrumb positions follow item order regardless of array keys
+     *
+     * @return void
+     */
+    public function testSchemaBreadcrumbListIgnoresKeys(): void
+    {
+        $schema = $this->Seo->schemaBreadcrumbList([
+            'home' => ['name' => 'Home', 'url' => '/'],
+            5 => ['name' => 'Blog', 'url' => '/blog'],
+        ]);
+
+        $this->assertSame(1, $schema['itemListElement'][0]['position']);
+        $this->assertSame(2, $schema['itemListElement'][1]['position']);
+    }
+
+    /**
+     * Test breadcrumb items require name and url
+     *
+     * @return void
+     */
+    public function testSchemaBreadcrumbListMissingKeyThrowsException(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('BreadcrumbList item requires a `url` key');
+
+        $this->Seo->schemaBreadcrumbList([['name' => 'Home']]);
+    }
+
+    /**
+     * Test aggregateRating requires ratingValue and reviewCount
+     *
+     * @return void
+     */
+    public function testSchemaProductAggregateRatingMissingKeyThrowsException(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('aggregateRating requires a `reviewCount` key');
+
+        $this->Seo->schemaProduct('Widget', ['aggregateRating' => ['ratingValue' => 4.5]]);
+    }
+
+    /**
+     * Test FAQ items require question and answer
+     *
+     * @return void
+     */
+    public function testSchemaFAQPageMissingKeyThrowsException(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('FAQPage item requires a `answer` key');
+
+        $this->Seo->schemaFAQPage([['question' => 'Why?']]);
     }
 
     /**

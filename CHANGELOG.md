@@ -13,10 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ImageHelper** - Files in the webroot root no longer get a `//` or `/./` segment in the cache path
 - **ImageHelper** - Return the original path for unsupported formats (e.g. `svg`, `tiff`) instead of saving JPEG data under the wrong extension
 - **ImageHelper** - Write thumbnails to a temporary file and rename them, so concurrent requests never serve a partial image
+- **SeoHelper** - `schemaBreadcrumbList()` numbers positions by item order; string or non-zero-based keys no longer throw `TypeError` or produce wrong positions
+- **SeoHelper** - `schemaBreadcrumbList()`, `schemaFAQPage()`, and `schemaProduct()` `aggregateRating` throw `InvalidArgumentException` for missing required keys instead of PHP warnings
 ### Changed
 
 - **ImageHelper** - Unknown `driver` names (matched case-insensitively) no longer fall back to GD silently; processing returns the original path. `getDriverInfo()['driver']` reports the configured driver instead of always the detected one
 - **ImageHelper** - Log processing errors at `debug` level when `debug` is enabled
+- **SeoHelper** - `canonical()` and the `openGraph()` `og:url` default to the current URL **without the query string**. Pass the URL explicitly to keep query parameters
+- **SeoHelper** - New `currentUrl()` method; `jsonLd()` accepts `@graph` documents without a top-level `@type`; the `openGraph()` missing-title message now reads ``Missing required `title` option for openGraph()``
 
 ## [1.5.0] - 2026-10-24
 

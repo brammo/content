@@ -55,7 +55,7 @@ echo $this->Seo->head([
 
 #### canonical()
 
-Generates a `<link rel="canonical">` tag. Defaults to the current request URL.
+Generates a `<link rel="canonical">` tag. Defaults to the current request URL without its query string (so `?utm_source=…` and similar parameters never end up in the canonical URL). Pass a URL explicitly to keep query parameters.
 
 ```php
 echo $this->Seo->canonical();
@@ -145,7 +145,7 @@ echo $this->Seo->themeColor('#336699');
 
 #### jsonLd()
 
-Generates one or more `<script type="application/ld+json">` blocks.
+Generates one or more `<script type="application/ld+json">` blocks. Each block must have an `@type` or an `@graph` key; otherwise an `InvalidArgumentException` is thrown. `<` and `>` are escaped so values cannot close the `<script>` tag.
 
 ```php
 echo $this->Seo->jsonLd($this->Seo->schemaWebSite('My Site', '/'));
@@ -153,6 +153,15 @@ echo $this->Seo->jsonLd($this->Seo->schemaWebSite('My Site', '/'));
 echo $this->Seo->jsonLd([
     $this->Seo->schemaWebSite('My Site', '/'),
     $this->Seo->schemaWebPage('About', '/about'),
+]);
+
+// A single @graph document
+echo $this->Seo->jsonLd([
+    '@context' => 'https://schema.org',
+    '@graph' => [
+        ['@type' => 'WebSite', 'name' => 'My Site'],
+        ['@type' => 'Organization', 'name' => 'Acme Inc'],
+    ],
 ]);
 ```
 
@@ -166,7 +175,7 @@ Each preset returns a schema array for use with `jsonLd()` or `head()`.
 | `schemaOrganization($name, $url, $options)` | `Organization` | Optional `logo`, `sameAs[]` |
 | `schemaWebPage($name, $url, $options)` | `WebPage` | Optional `description`, `dateModified` |
 | `schemaArticle($headline, $url, $options)` | `Article` / `NewsArticle` | Optional `author`, dates, `image`, `publisher`, `type` |
-| `schemaBreadcrumbList($items)` | `BreadcrumbList` | Array of `['name' => '...', 'url' => '...']` |
+| `schemaBreadcrumbList($items)` | `BreadcrumbList` | Array of `['name' => '...', 'url' => '...']`; `position` follows item order, array keys are ignored |
 | `schemaProduct($name, $options)` | `Product` | Optional `description`, `image`, `sku`, `brand`, `offers`, `aggregateRating` |
 | `schemaFAQPage($items)` | `FAQPage` | Array of `['question' => '...', 'answer' => '...']` |
 | `schemaLocalBusiness($name, $url, $options)` | `LocalBusiness` | Optional `type`, `address`, `telephone`, `geo`, `openingHours`, `image`, `priceRange` |
@@ -177,6 +186,17 @@ $schema = $this->Seo->schemaOrganization('Acme Inc', '/about', [
     'sameAs' => ['https://twitter.com/acme'],
 ]);
 echo $this->Seo->jsonLd($schema);
+```
+
+Required keys throw an `InvalidArgumentException` when missing: `name` and `url` for each breadcrumb item, `question` and `answer` for each FAQ item, and `ratingValue` and `reviewCount` in `aggregateRating`.
+
+#### currentUrl()
+
+Returns the absolute URL of the current request without its query string. `canonical()` and `openGraph()` use it when no URL is given.
+
+```php
+$url = $this->Seo->currentUrl();
+// Returns: https://example.com/articles/example
 ```
 
 #### absoluteUrl()
