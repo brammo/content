@@ -14,6 +14,7 @@ CakePHP 5 plugin (`Brammo/Content`) for view helpers and reusable template eleme
 | `tests/TestCase/` | PHPUnit tests mirroring `src/` |
 | `tests/test_app/` | Minimal Cake app for `WWW_ROOT` and bootstrap |
 | `doc/` | User-facing helper/element documentation |
+| `CLAUDE.md` | Imports this file plus Claude Code notes |
 
 ## Conventions
 
@@ -64,6 +65,8 @@ composer analyse
 - Config (host `Configure::write`, plugin bootstrap stays off): `Content.Editor.height`, `cleanOnPaste`, `statusBar`, `tableClass`
 - File browsing is off unless the element receives both `imagesUrl` and `filesUrl`. Do not reference `FileBrowser` in the default script
 - In `editor.js`, hide link/image browse buttons when `options.fileBrowser` is missing
+- `new HtmlEditor()` returns the existing instance for an already-initialized textarea; `destroy()` restores the textarea
+- No JS test suite: check editor changes in a browser
 
 ## Adding an element
 
@@ -72,6 +75,7 @@ composer analyse
 3. `doc/{Name}Element.md` and link from `doc/Elements.md`
 4. Require variables with `InvalidArgumentException` when missing
 5. **Selectors** passed into inline JS must be static/trusted (not raw user input)
+6. Inline JS waits for `DOMContentLoaded` and does nothing when the target element is missing
 
 ## Do not
 

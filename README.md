@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A [CakePHP](https://cakephp.org/) plugin for content manipulation including image processing, date formatting, and video embedding.
+A [CakePHP](https://cakephp.org/) plugin with view helpers for image processing, date formatting, video embedding, country flags, and SEO tags (canonical, robots, Open Graph/Twitter, JSON-LD), plus reusable elements for Select2, Masonry, Sticksy, lightGallery, Open Graph, and a WYSIWYG HTML editor.
 
 ## Requirements
 

@@ -1,6 +1,6 @@
 # Copilot Instructions for Brammo Content Plugin
 
-> For Cursor and other agents, see [AGENTS.md](../AGENTS.md) (canonical instructions).
+> For Cursor, Claude Code ([CLAUDE.md](../CLAUDE.md)), and other agents, see [AGENTS.md](../AGENTS.md) (canonical instructions).
 
 ## Project Overview
 
