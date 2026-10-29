@@ -2253,8 +2253,15 @@ const HtmlEditor = (function() {
             alt: img.getAttribute('alt') || '',
             width: '',
             height: '',
+            align: '',
+            cssClass: img.getAttribute('class') || '',
             styles: '',
         };
+
+        const float = img.style.getPropertyValue('float');
+        if (float === 'left' || float === 'right') {
+            props.align = float;
+        }
 
         if (img.style.width) {
             props.width = img.style.width;
@@ -2271,6 +2278,9 @@ const HtmlEditor = (function() {
         const styleParts = [];
         for (let i = 0; i < img.style.length; i++) {
             const name = img.style[i];
+            if (name === 'float' && props.align) {
+                continue;
+            }
             if (name !== 'width' && name !== 'height') {
                 styleParts.push(name + ': ' + img.style.getPropertyValue(name));
             }
@@ -2299,12 +2309,20 @@ const HtmlEditor = (function() {
             img.removeAttribute('alt');
         }
 
+        const cssClass = (props.cssClass || '').trim();
+        if (cssClass) {
+            img.className = cssClass;
+        } else {
+            img.removeAttribute('class');
+        }
+
         img.removeAttribute('width');
         img.removeAttribute('height');
 
         const styleParts = [];
         const width = this.normalizeCssSize(props.width || '');
         const height = this.normalizeCssSize(props.height || '');
+        const align = (props.align || '').trim();
         const styles = (props.styles || '').trim().replace(/;+\s*$/, '');
 
         if (width) {
@@ -2312,6 +2330,9 @@ const HtmlEditor = (function() {
         }
         if (height) {
             styleParts.push('height: ' + height);
+        }
+        if (align === 'left' || align === 'right') {
+            styleParts.push('float: ' + align);
         }
         if (styles) {
             styleParts.push(styles);
@@ -2408,6 +2429,20 @@ const HtmlEditor = (function() {
                                     '<input type="text" class="form-control" name="height" placeholder="100">' +
                                 '</div>' +
                             '</div>' +
+                            '<div class="row g-2 mb-3">' +
+                                '<div class="col-sm-6">' +
+                                    '<label class="form-label html-editor-image-align-label"></label>' +
+                                    '<select class="form-select" name="align">' +
+                                        '<option value=""></option>' +
+                                        '<option value="left"></option>' +
+                                        '<option value="right"></option>' +
+                                    '</select>' +
+                                '</div>' +
+                                '<div class="col-sm-6">' +
+                                    '<label class="form-label html-editor-image-class-label"></label>' +
+                                    '<input type="text" class="form-control" name="cssClass">' +
+                                '</div>' +
+                            '</div>' +
                             '<div class="mb-0">' +
                                 '<label class="form-label html-editor-image-styles-label"></label>' +
                                 '<input type="text" class="form-control" name="styles" placeholder="margin: 1rem">' +
@@ -2435,11 +2470,18 @@ const HtmlEditor = (function() {
         modalEl.querySelector('.html-editor-image-alt-label').textContent = labels.imageAlt || 'Alt';
         modalEl.querySelector('.html-editor-image-width-label').textContent = labels.imageWidth || 'Width';
         modalEl.querySelector('.html-editor-image-height-label').textContent = labels.imageHeight || 'Height';
+        modalEl.querySelector('.html-editor-image-align-label').textContent = labels.imageAlign || 'Alignment';
+        modalEl.querySelector('.html-editor-image-class-label').textContent = labels.imageClass || 'CSS class';
         modalEl.querySelector('.html-editor-image-styles-label').textContent = labels.imageStyles || 'Styles';
         modalEl.querySelector('.html-editor-image-browse-label').textContent = labels.imageSelect || 'Select';
         modalEl.querySelector('.html-editor-image-browse-back-label').textContent = labels.imageBack || 'Back';
         modalEl.querySelector('.html-editor-image-footer .btn-secondary').textContent = labels.cancel || 'Cancel';
         modalEl.querySelector('.html-editor-image-insert').textContent = labels.imageInsert || 'Insert';
+
+        const imageAlignSelect = modalEl.querySelector('select[name="align"]');
+        imageAlignSelect.options[0].textContent = labels.imageAlignNone || 'None';
+        imageAlignSelect.options[1].textContent = labels.imageAlignLeft || 'Left';
+        imageAlignSelect.options[2].textContent = labels.imageAlignRight || 'Right';
 
         document.body.appendChild(modalEl);
 
@@ -2507,6 +2549,8 @@ const HtmlEditor = (function() {
                 alt: form.elements.alt.value,
                 width: form.elements.width.value,
                 height: form.elements.height.value,
+                align: form.elements.align.value,
+                cssClass: form.elements.cssClass.value,
                 styles: form.elements.styles.value,
             });
 
@@ -2573,6 +2617,8 @@ const HtmlEditor = (function() {
             imageModal.form.elements.alt.value = props.alt;
             imageModal.form.elements.width.value = props.width;
             imageModal.form.elements.height.value = props.height;
+            imageModal.form.elements.align.value = props.align;
+            imageModal.form.elements.cssClass.value = props.cssClass;
             imageModal.form.elements.styles.value = props.styles;
         }
 
@@ -3697,6 +3743,7 @@ const HtmlEditor = (function() {
             align: cell.style.textAlign || '',
             valign: cell.style.verticalAlign || '',
             background: cell.style.backgroundColor || '',
+            cellClass: cell.getAttribute('class') || '',
             cellType: cell.tagName === 'TH' ? 'th' : 'td',
         };
     };
@@ -3740,6 +3787,13 @@ const HtmlEditor = (function() {
 
         if (!cell.style.length) {
             cell.removeAttribute('style');
+        }
+
+        const cellClass = (props.cellClass || '').trim();
+        if (cellClass) {
+            cell.className = cellClass;
+        } else {
+            cell.removeAttribute('class');
         }
 
         const wantType = (props.cellType || 'td').toLowerCase() === 'th' ? 'TH' : 'TD';
@@ -4020,6 +4074,10 @@ const HtmlEditor = (function() {
                             '<label class="form-label html-editor-cell-bg-label"></label>' +
                             '<input type="text" class="form-control" name="background" placeholder="#f8f9fa">' +
                         '</div>' +
+                        '<div class="mb-3">' +
+                            '<label class="form-label html-editor-cell-class-label"></label>' +
+                            '<input type="text" class="form-control" name="cellClass">' +
+                        '</div>' +
                         '<div class="mb-0">' +
                             '<label class="form-label html-editor-cell-type-label"></label>' +
                             '<select class="form-select" name="cellType">' +
@@ -4041,6 +4099,7 @@ const HtmlEditor = (function() {
         modalEl.querySelector('.html-editor-cell-align-label').textContent = labels.cellAlign || 'Text align';
         modalEl.querySelector('.html-editor-cell-valign-label').textContent = labels.cellValign || 'Vertical align';
         modalEl.querySelector('.html-editor-cell-bg-label').textContent = labels.cellBackground || 'Background';
+        modalEl.querySelector('.html-editor-cell-class-label').textContent = labels.cellClass || 'CSS class';
         modalEl.querySelector('.html-editor-cell-type-label').textContent = labels.cellType || 'Cell type';
         modalEl.querySelector('.modal-footer .btn-secondary').textContent = labels.cancel || 'Cancel';
         modalEl.querySelector('.html-editor-cell-save').textContent = labels.cellSave || 'Save';
@@ -4083,6 +4142,7 @@ const HtmlEditor = (function() {
                 align: form.elements.align.value,
                 valign: form.elements.valign.value,
                 background: form.elements.background.value,
+                cellClass: form.elements.cellClass.value,
                 cellType: form.elements.cellType.value,
             };
 
@@ -4136,6 +4196,7 @@ const HtmlEditor = (function() {
         cellModal.form.elements.align.value = props.align;
         cellModal.form.elements.valign.value = props.valign;
         cellModal.form.elements.background.value = props.background;
+        cellModal.form.elements.cellClass.value = props.cellClass;
         cellModal.form.elements.cellType.value = props.cellType;
 
         if (cellModal.modal) {

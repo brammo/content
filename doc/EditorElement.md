@@ -15,6 +15,8 @@ echo $this->Form->control('body', ['type' => 'textarea', 'class' => 'editor']);
 
 Paragraph (`<p>`) is the default block. The toolbar covers headings, inline formatting, alignment, lists, links, images, tables, clear formatting, and HTML source mode.
 
+The image dialog sets URL, alt text, size, alignment (`float: left` or `float: right`), CSS class, and extra styles. Table properties and cell properties each have a CSS class field.
+
 ## Configuration
 
 Optional `Content.Editor` settings. The host application writes them; this plugin does not load a config file.

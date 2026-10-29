@@ -91,6 +91,10 @@ class EditorElementTest extends TestCase
         $this->assertStringNotContainsString('browseUrl', $script);
         $this->assertStringContainsString('Clear formatting', $script);
         $this->assertStringContainsString('Insert table', $script);
+        $this->assertStringContainsString('"imageAlign":"Alignment"', $script);
+        $this->assertStringContainsString('"imageAlignLeft":"Left"', $script);
+        $this->assertStringContainsString('"imageClass":"CSS class"', $script);
+        $this->assertStringContainsString('"cellClass":"CSS class"', $script);
     }
 
     /**

@@ -160,6 +160,9 @@ msgstr "Курсив"
 msgid "Justify"
 msgstr "Двустранно"
 
+msgid "Left"
+msgstr "Ляво"
+
 msgid "Link URL"
 msgstr "URL на връзка"
 
@@ -175,6 +178,9 @@ msgstr "Среда"
 msgid "New window"
 msgstr "Нов прозорец"
 
+msgid "None"
+msgstr "Няма"
+
 msgid "Numbered list"
 msgstr "Номериран списък"
 
@@ -189,6 +195,9 @@ msgstr "Преформатиран"
 
 msgid "Redo"
 msgstr "Повтори"
+
+msgid "Right"
+msgstr "Дясно"
 
 msgid "Rows"
 msgstr "Редове"

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- **HTML editor** - Image dialog has alignment (`float: left` / `float: right`) and CSS class fields
+- **HTML editor** - Cell properties dialog has a CSS class field
+
 ## [1.6.0] - 2026-10-29
 
 ### Fixed
