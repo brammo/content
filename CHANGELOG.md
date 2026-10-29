@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HTML editor** - Rendering the element twice no longer wraps a textarea in a second editor
 - **HTML editor** - `new HtmlEditor(textarea)` without options no longer throws
 - **lightgallery**, **masonry** elements - Wait for `DOMContentLoaded` and skip a missing container instead of throwing a JavaScript error
+- **sticksy** element - Docblock no longer references the host `App\View\AppView` class
+
 ### Changed
 
 - **ImageHelper** - Unknown `driver` names (matched case-insensitively) no longer fall back to GD silently; processing returns the original path. `getDriverInfo()['driver']` reports the configured driver instead of always the detected one

@@ -1,13 +1,15 @@
 <?php
 /**
- * Sticky element
- * 
- * @var \App\View\AppView $this
+ * Sticky element (requires jQuery loaded before the script block)
+ *
+ * @var \Cake\View\View $this
+ * @var string $selector CSS selector for the sticky elements
+ * @var array<string, mixed>|null $options Sticksy options
+ * @var int|null $topSpacing Optional top spacing in pixels
  */
 
 if (!isset($selector)) {
     throw new \InvalidArgumentException('Missing required $selector variable for sticksy element');
-    return;
 }
 
 // Default options to empty array
