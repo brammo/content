@@ -97,7 +97,7 @@ class ImageHelper extends Helper
 
     /**
      * Fit image within dimensions and fill remaining space with background color.
-     * Image will be scaled to fit and centered, with padding added as needed.
+     * Image will be scaled up or down to fit and centered, with padding added as needed.
      *
      * Cache path format: {tempFolder}/{width}x{height}f/{filename}
      *
@@ -219,7 +219,7 @@ class ImageHelper extends Helper
     }
 
     /**
-     * Apply fit transformation (contain within dimensions with background padding)
+     * Apply fit transformation (scale up or down to fit, pad with background color)
      *
      * @param \Intervention\Image\Interfaces\ImageInterface $image
      * @param int $width
@@ -230,7 +230,7 @@ class ImageHelper extends Helper
     {
         $backgroundColor = $this->getConfig('backgroundColor');
 
-        return $image->pad($width, $height, $backgroundColor);
+        return $image->contain($width, $height, $backgroundColor);
     }
 
     /**

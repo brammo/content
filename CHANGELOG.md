@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HTML editor** - Cell properties dialog has a CSS class field
 - **HTML editor** - Maximize button edits in the full browser window; Esc restores the inline size
 
+### Changed
+
+- **ImageHelper** - `fit()` scales smaller images up to the target dimensions before padding, like `resize()` and `crop()`. Delete existing `{W}x{H}f` thumbnails to regenerate them
+
 ## [1.6.0] - 2026-10-29
 
 ### Fixed

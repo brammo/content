@@ -68,7 +68,7 @@ echo $this->Image->crop('/images/photo.jpg', 100);
 
 #### fit()
 
-Fit image within dimensions and fill remaining space with background color. Larger images are scaled down to fit; smaller images are **not** scaled up, only centered and padded (unlike `resize()` and `crop()`, which do scale up).
+Fit image within dimensions and fill remaining space with background color. Images are scaled up or down to fit, then centered and padded.
 
 ```php
 // Fit within 300x200, pad with white background

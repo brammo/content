@@ -124,6 +124,42 @@ class ImageHelperTest extends TestCase
     }
 
     /**
+     * Test fit scales a smaller image up to the target dimensions before padding
+     *
+     * @return void
+     */
+    public function testFitScalesUpSmallerImage(): void
+    {
+        if (!extension_loaded('gd')) {
+            $this->markTestSkipped('GD extension not available.');
+        }
+
+        $helper = new ImageHelper(new View(), ['driver' => 'gd', 'tempFolder' => '/thumb-test']);
+        $result = $helper->fit('/images/test.png', 240, 240);
+        $cacheFullPath = WWW_ROOT . 'thumb-test/240x240f/images/test.png';
+
+        try {
+            $this->assertSame('/thumb-test/240x240f/images/test.png', $result);
+            $this->assertFileExists($cacheFullPath);
+
+            $image = imagecreatefrompng($cacheFullPath);
+            $this->assertNotFalse($image);
+            $this->assertSame(240, imagesx($image));
+            $this->assertSame(240, imagesy($image));
+
+            // 120x80 source scales to 240x160: left edge is image, top rows are padding
+            $white = 0xFFFFFF;
+            $this->assertSame($white, imagecolorat($image, 120, 2) & 0xFFFFFF);
+            $this->assertNotSame($white, imagecolorat($image, 2, 120) & 0xFFFFFF);
+        } finally {
+            if (is_file($cacheFullPath)) {
+                unlink($cacheFullPath);
+            }
+            $this->removeEmptyCacheDirs(dirname($cacheFullPath));
+        }
+    }
+
+    /**
      * Test getDriverInfo returns expected structure
      *
      * @return void
