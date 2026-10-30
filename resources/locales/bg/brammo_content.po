@@ -211,6 +211,12 @@ msgstr "Редове"
 msgid "Same frame (_self)"
 msgstr "Същата рамка (_self)"
 
+msgid "Remove link"
+msgstr "Премахни връзка"
+
+msgid "Open in"
+msgstr "Отвори в"
+
 msgid "Same window"
 msgstr "Същият прозорец"
 

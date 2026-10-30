@@ -82,6 +82,7 @@ const HtmlEditor = (function() {
         list: '<path d="M9 6l11 0"/><path d="M9 12l11 0"/><path d="M9 18l11 0"/><path d="M5 6l0 .01"/><path d="M5 12l0 .01"/><path d="M5 18l0 .01"/>',
         'list-numbers': '<path d="M11 6h9"/><path d="M11 12h9"/><path d="M12 18h8"/><path d="M4 16a2 2 0 1 1 4 0c0 .591 -.5 1 -1 1.5l-3 2.5h4"/><path d="M6 10v-6l-2 2"/>',
         link: '<path d="M9 15l6 -6"/><path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464"/><path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463"/>',
+        'link-off': '<path d="M9 15l3 -3m2 -2l1 -1"/><path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .463"/><path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463"/><path d="M3 3l18 18"/>',
         photo: '<path d="M15 8h.01"/><path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12"/><path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5"/><path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3"/>',
         eraser: '<path d="M19 20h-10.5l-4.21 -4.3a1 1 0 0 1 0 -1.41l10 -10a1 1 0 0 1 1.41 0l5 5a1 1 0 0 1 0 1.41l-9.2 9.3"/><path d="M18 13.3l-6.3 -6.3"/>',
         html: '<path d="M7 8l-4 4l4 4"/><path d="M17 8l4 4l-4 4"/><path d="M14 4l-4 16"/>',
@@ -112,6 +113,7 @@ const HtmlEditor = (function() {
     const HISTORY_DEBOUNCE = 400;
     const SOURCE_INDENT = '  ';
     const SOURCE_HIGHLIGHT_LIMIT = 200000;
+    const SOURCE_LINE_LIMIT = 120;
 
     const VOID_TAGS = {
         area: true, base: true, br: true, col: true, embed: true, hr: true,
@@ -305,6 +307,8 @@ const HtmlEditor = (function() {
 
     /**
      * Pretty-print HTML, indenting only around block-level tags.
+     * Blocks holding only inline content stay on one line when it fits SOURCE_LINE_LIMIT.
+     * Formatting already formatted source returns it unchanged.
      *
      * @param {string} source
      * @returns {string}
@@ -365,133 +369,188 @@ const HtmlEditor = (function() {
             i = j;
         }
 
-        let result = '';
-        let depth = 0;
-        let atLineStart = true;
-
-        /**
-         * @param {number} level
-         */
-        function writeIndent(level) {
-            result += SOURCE_INDENT.repeat(Math.max(0, level));
-        }
-
-        /**
-         * @param {boolean} [force]
-         */
-        function ensureNewline(force) {
-            if (!atLineStart || force) {
-                if (result.length && result[result.length - 1] !== '\n') {
-                    result += '\n';
-                }
-                atLineStart = true;
-            }
-        }
-
-        /**
-         * Write indent when starting a new line of content.
-         */
-        function indentIfNeeded() {
-            if (atLineStart) {
-                writeIndent(depth);
-                atLineStart = false;
-            }
-        }
+        // Build a tree so leaf blocks can be printed on one line
+        const root = { type: 'element', name: '', children: [] };
+        const stack = [root];
 
         tokens.forEach(function(token) {
-            if (token.type === 'text' || token.type === 'raw') {
-                if (token.type === 'raw') {
-                    result += token.value;
-                    atLineStart = token.value.length === 0 || token.value[token.value.length - 1] === '\n';
-                    return;
-                }
+            const parent = stack[stack.length - 1];
 
-                if (/^\s*$/.test(token.value)) {
-                    return;
-                }
-
-                const parts = token.value.split(/(\n+)/);
-                parts.forEach(function(part) {
-                    if (!part) {
-                        return;
-                    }
-                    if (/^\n+$/.test(part)) {
-                        result += '\n';
-                        atLineStart = true;
-                        return;
-                    }
-                    const content = atLineStart ? part.replace(/^[ \t]+/, '') : part;
-                    if (!content) {
-                        return;
-                    }
-                    indentIfNeeded();
-                    result += content;
-                    atLineStart = false;
-                });
+            if (token.type === 'open') {
+                const node = {
+                    type: 'element',
+                    name: token.name,
+                    open: token.value,
+                    close: '',
+                    inline: token.inline,
+                    children: [],
+                };
+                parent.children.push(node);
+                stack.push(node);
                 return;
             }
-
-            if (token.type === 'comment') {
-                ensureNewline();
-                writeIndent(depth);
-                result += token.value;
-                atLineStart = false;
-                ensureNewline();
-                return;
-            }
-
-            const isInline = token.inline;
 
             if (token.type === 'close') {
-                if (!isInline) {
-                    depth = Math.max(0, depth - 1);
-                    ensureNewline();
-                    writeIndent(depth);
-                    result += token.value;
-                    atLineStart = false;
-                    ensureNewline();
-                } else {
-                    indentIfNeeded();
-                    result += token.value;
-                    atLineStart = false;
+                for (let k = stack.length - 1; k > 0; k--) {
+                    if (stack[k].name === token.name) {
+                        stack[k].close = token.value;
+                        stack.length = k;
+                        return;
+                    }
                 }
+                // Stray closing tag: keep it as inline text
+                parent.children.push({ type: 'text', value: token.value });
                 return;
             }
 
-            if (token.type === 'void') {
-                if (!isInline) {
-                    ensureNewline();
-                    writeIndent(depth);
-                    result += token.value;
-                    atLineStart = false;
-                    ensureNewline();
-                } else {
-                    indentIfNeeded();
-                    result += token.value;
-                    atLineStart = false;
-                }
-                return;
-            }
-
-            // open
-            if (!isInline) {
-                ensureNewline();
-                writeIndent(depth);
-                result += token.value;
-                atLineStart = false;
-                depth++;
-                if (!PRESERVE_TAGS[token.name]) {
-                    ensureNewline();
-                }
-            } else {
-                indentIfNeeded();
-                result += token.value;
-                atLineStart = false;
-            }
+            parent.children.push(token);
         });
 
-        const trimmed = result.replace(/\s+$/, '');
-        return trimmed ? trimmed + '\n' : '';
+        /**
+         * @param {Array<Object>} children
+         * @returns {boolean}
+         */
+        function containsBlock(children) {
+            return children.some(isBlockNode);
+        }
+
+        /**
+         * @param {Object} node
+         * @returns {boolean}
+         */
+        function isBlockNode(node) {
+            if (node.type === 'comment') {
+                return true;
+            }
+            if (node.type === 'void') {
+                return !node.inline;
+            }
+            if (node.type === 'element') {
+                return !node.inline || containsBlock(node.children);
+            }
+            return false;
+        }
+
+        /**
+         * Serialize nodes unchanged (preformatted content).
+         *
+         * @param {Array<Object>} nodes
+         * @returns {string}
+         */
+        function rawHtml(nodes) {
+            return nodes.map(function(node) {
+                if (node.type === 'element') {
+                    return node.open + rawHtml(node.children) + node.close;
+                }
+                return node.value;
+            }).join('');
+        }
+
+        /**
+         * Serialize inline nodes, collapsing whitespace runs (not &nbsp;) to one space.
+         *
+         * @param {Array<Object>} nodes
+         * @returns {string}
+         */
+        function inlineHtml(nodes) {
+            return nodes.map(function(node) {
+                if (node.type === 'element') {
+                    if (PRESERVE_TAGS[node.name]) {
+                        return node.open + rawHtml(node.children) + node.close;
+                    }
+                    return node.open + inlineHtml(node.children) + node.close;
+                }
+                if (node.type === 'text') {
+                    return node.value.replace(/[ \t\n\r\f]+/g, ' ');
+                }
+                return node.value;
+            }).join('');
+        }
+
+        /**
+         * @param {string} text
+         * @returns {string}
+         */
+        function trimSpace(text) {
+            return text.replace(/^[ \t\n\r\f]+|[ \t\n\r\f]+$/g, '');
+        }
+
+        const lines = [];
+
+        /**
+         * @param {number} depth
+         * @returns {string}
+         */
+        function pad(depth) {
+            return SOURCE_INDENT.repeat(depth);
+        }
+
+        /**
+         * @param {Array<Object>} children
+         * @param {number} depth
+         */
+        function printChildren(children, depth) {
+            let run = [];
+
+            function flush() {
+                const text = trimSpace(inlineHtml(run));
+                if (text) {
+                    lines.push(pad(depth) + text);
+                }
+                run = [];
+            }
+
+            children.forEach(function(child) {
+                if (isBlockNode(child)) {
+                    flush();
+                    printBlock(child, depth);
+                } else {
+                    run.push(child);
+                }
+            });
+            flush();
+        }
+
+        /**
+         * @param {Object} node
+         * @param {number} depth
+         */
+        function printBlock(node, depth) {
+            if (node.type !== 'element') {
+                lines.push(pad(depth) + node.value);
+                return;
+            }
+
+            if (PRESERVE_TAGS[node.name]) {
+                lines.push(pad(depth) + node.open + rawHtml(node.children) + node.close);
+                return;
+            }
+
+            if (!containsBlock(node.children)) {
+                const inner = trimSpace(inlineHtml(node.children));
+                const line = pad(depth) + node.open + inner + node.close;
+                if (!inner || line.length <= SOURCE_LINE_LIMIT) {
+                    lines.push(line);
+                    return;
+                }
+                lines.push(pad(depth) + node.open);
+                lines.push(pad(depth + 1) + inner);
+                if (node.close) {
+                    lines.push(pad(depth) + node.close);
+                }
+                return;
+            }
+
+            lines.push(pad(depth) + node.open);
+            printChildren(node.children, depth + 1);
+            if (node.close) {
+                lines.push(pad(depth) + node.close);
+            }
+        }
+
+        printChildren(root.children, 0);
+
+        return lines.length ? lines.join('\n') + '\n' : '';
     }
 
     /**
@@ -589,6 +648,7 @@ const HtmlEditor = (function() {
         this.linkDialogOpen = false;
         this.linkBrowseEmbedded = false;
         this.editingLink = null;
+        this.linkImage = null;
         this.editingTable = null;
         this.editingCells = null;
         this.tableDropdown = null;
@@ -732,16 +792,17 @@ const HtmlEditor = (function() {
             if (this.sourceMode) {
                 return;
             }
-            const link = e.target.closest('a');
-            if (link && this.body.contains(link)) {
-                e.preventDefault();
-                this.openLinkDialog(link);
-                return;
-            }
+            // A linked image opens the image dialog, which edits its link too
             const img = e.target.closest('img');
             if (img && this.body.contains(img)) {
                 e.preventDefault();
                 this.openImageDialog(img);
+                return;
+            }
+            const link = e.target.closest('a');
+            if (link && this.body.contains(link)) {
+                e.preventDefault();
+                this.openLinkDialog(link);
             }
         }.bind(this));
 
@@ -794,6 +855,7 @@ const HtmlEditor = (function() {
         ]));
         toolbar.appendChild(this.buildButtonGroup([
             { action: 'insertLink', icon: 'link', title: labels.link },
+            { action: 'unlink', icon: 'link-off', title: labels.unlink || 'Remove link' },
             { action: 'insertImage', icon: 'photo', title: labels.imageBrowse },
         ]));
         toolbar.appendChild(this.buildTableMenu(labels));
@@ -1446,6 +1508,9 @@ const HtmlEditor = (function() {
                 break;
             case 'insertLink':
                 this.openLinkDialog();
+                break;
+            case 'unlink':
+                this.removeLink();
                 break;
             case 'insertImage':
                 this.openImageDialog();
@@ -2134,6 +2199,65 @@ const HtmlEditor = (function() {
     };
 
     /**
+     * Links around the caret or touched by the selection.
+     *
+     * @returns {Array<HTMLAnchorElement>}
+     */
+    HtmlEditor.prototype.getLinksInSelection = function() {
+        const link = this.getLinkAtSelection();
+        if (link) {
+            return [link];
+        }
+
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+            return [];
+        }
+
+        const range = selection.getRangeAt(0);
+        if (range.collapsed || !this.body.contains(range.commonAncestorContainer)) {
+            return [];
+        }
+
+        return Array.prototype.filter.call(this.body.querySelectorAll('a'), function(a) {
+            return range.intersectsNode(a);
+        });
+    };
+
+    /**
+     * Unwrap the given link, or every link in the selection, keeping its content.
+     *
+     * @param {HTMLAnchorElement} [anchor]
+     */
+    HtmlEditor.prototype.removeLink = function(anchor) {
+        const links = anchor && anchor.tagName === 'A' ? [anchor] : this.getLinksInSelection();
+        if (!links.length) {
+            return;
+        }
+
+        this.focusBody();
+        const offsets = this.getSelectionOffsets();
+        links.forEach(function(link) {
+            this.unwrapNode(link);
+        }, this);
+        this.restoreSelectionOffsets(offsets);
+
+        this.sync();
+        this.commitHistory();
+        this.refreshToolbarState();
+    };
+
+    /**
+     * Link text is editable only when the link holds plain text (not an image).
+     *
+     * @param {HTMLAnchorElement} anchor
+     * @returns {boolean}
+     */
+    HtmlEditor.prototype.isTextLink = function(anchor) {
+        return !anchor.querySelector('*:not(b, strong, i, em, u, s, span, code, sub, sup, br)');
+    };
+
+    /**
      * @param {HTMLAnchorElement} anchor
      * @returns {Object}
      */
@@ -2159,10 +2283,10 @@ const HtmlEditor = (function() {
         anchor.href = url;
 
         const text = (props.text || '').trim();
-        if (text) {
+        if (!anchor.firstChild) {
+            anchor.textContent = text || url;
+        } else if (text && text !== anchor.textContent && this.isTextLink(anchor)) {
             anchor.textContent = text;
-        } else if (!anchor.textContent) {
-            anchor.textContent = url;
         }
 
         const title = (props.title || '').trim();
@@ -2200,6 +2324,20 @@ const HtmlEditor = (function() {
 
         this.focusBody();
         const anchor = document.createElement('a');
+
+        if (this.linkImage) {
+            const img = this.linkImage;
+            this.linkImage = null;
+            this.clearSavedSelection();
+            img.parentNode.insertBefore(anchor, img);
+            anchor.appendChild(img);
+            this.applyLinkProperties(anchor, props);
+            this.sync();
+            this.commitHistory();
+            this.refreshToolbarState();
+            return;
+        }
+
         this.applyLinkProperties(anchor, props);
 
         let range = null;
@@ -2315,12 +2453,20 @@ const HtmlEditor = (function() {
         const props = {
             src: img.getAttribute('src') || '',
             alt: img.getAttribute('alt') || '',
+            linkUrl: '',
+            linkTarget: '',
             width: '',
             height: '',
             align: '',
             cssClass: img.getAttribute('class') || '',
             styles: '',
         };
+
+        const link = this.getImageLink(img);
+        if (link) {
+            props.linkUrl = link.getAttribute('href') || '';
+            props.linkTarget = link.getAttribute('target') || '';
+        }
 
         const float = img.style.getPropertyValue('float');
         if (float === 'left' || float === 'right') {
@@ -2410,6 +2556,52 @@ const HtmlEditor = (function() {
     };
 
     /**
+     * @param {HTMLImageElement} img
+     * @returns {HTMLAnchorElement|null}
+     */
+    HtmlEditor.prototype.getImageLink = function(img) {
+        const link = img.parentNode && img.parentNode.closest ? img.parentNode.closest('a') : null;
+        return link && this.body.contains(link) ? link : null;
+    };
+
+    /**
+     * Wrap the image in a link, update its link, or unwrap it when url is empty.
+     * A link that also holds text is never unwrapped here.
+     *
+     * @param {HTMLImageElement} img
+     * @param {string} url
+     * @param {string} target
+     */
+    HtmlEditor.prototype.setImageLink = function(img, url, target) {
+        url = (url || '').trim();
+        let link = this.getImageLink(img);
+
+        if (!url) {
+            if (link && !link.textContent.trim() && link.querySelectorAll('img').length === 1) {
+                this.unwrapNode(link);
+            }
+            return;
+        }
+
+        if (!isSafeUrl(url, false) || !img.parentNode) {
+            return;
+        }
+
+        if (!link) {
+            link = document.createElement('a');
+            img.parentNode.insertBefore(link, img);
+            link.appendChild(img);
+        }
+
+        link.href = url;
+        if (target) {
+            link.target = target;
+        } else {
+            link.removeAttribute('target');
+        }
+    };
+
+    /**
      * @param {Object} props
      */
     HtmlEditor.prototype.insertImageElement = function(props) {
@@ -2420,6 +2612,7 @@ const HtmlEditor = (function() {
 
         if (this.editingImage) {
             this.applyImageProperties(this.editingImage, props);
+            this.setImageLink(this.editingImage, props.linkUrl, props.linkTarget);
             this.editingImage = null;
             this.sync();
             this.commitHistory();
@@ -2436,12 +2629,14 @@ const HtmlEditor = (function() {
             const range = selection.getRangeAt(0);
             range.deleteContents();
             range.insertNode(img);
-            range.setStartAfter(img);
+            this.setImageLink(img, props.linkUrl, props.linkTarget);
+            range.setStartAfter(this.getImageLink(img) || img);
             range.collapse(true);
             selection.removeAllRanges();
             selection.addRange(range);
         } else {
             this.body.appendChild(img);
+            this.setImageLink(img, props.linkUrl, props.linkTarget);
         }
 
         this.sync();
@@ -2482,6 +2677,19 @@ const HtmlEditor = (function() {
                             '<div class="mb-3">' +
                                 '<label class="form-label html-editor-image-alt-label"></label>' +
                                 '<input type="text" class="form-control" name="alt">' +
+                            '</div>' +
+                            '<div class="row g-2 mb-3">' +
+                                '<div class="col-sm-8">' +
+                                    '<label class="form-label html-editor-image-link-label"></label>' +
+                                    '<input type="text" class="form-control" name="linkUrl" placeholder="https://">' +
+                                '</div>' +
+                                '<div class="col-sm-4">' +
+                                    '<label class="form-label html-editor-image-link-target-label"></label>' +
+                                    '<select class="form-select" name="linkTarget">' +
+                                        '<option value=""></option>' +
+                                        '<option value="_blank"></option>' +
+                                    '</select>' +
+                                '</div>' +
                             '</div>' +
                             '<div class="row g-2 mb-3">' +
                                 '<div class="col-sm-6">' +
@@ -2532,6 +2740,8 @@ const HtmlEditor = (function() {
         modalEl.querySelector('.modal-title').textContent = labels.imageDialogTitle || 'Insert image';
         modalEl.querySelector('.html-editor-image-src-label').textContent = labels.imageSrc || 'URL';
         modalEl.querySelector('.html-editor-image-alt-label').textContent = labels.imageAlt || 'Alt';
+        modalEl.querySelector('.html-editor-image-link-label').textContent = labels.imageLink || 'Link URL';
+        modalEl.querySelector('.html-editor-image-link-target-label').textContent = labels.imageLinkTarget || 'Open in';
         modalEl.querySelector('.html-editor-image-width-label').textContent = labels.imageWidth || 'Width';
         modalEl.querySelector('.html-editor-image-height-label').textContent = labels.imageHeight || 'Height';
         modalEl.querySelector('.html-editor-image-align-label').textContent = labels.imageAlign || 'Alignment';
@@ -2546,6 +2756,10 @@ const HtmlEditor = (function() {
         imageAlignSelect.options[0].textContent = labels.imageAlignNone || 'None';
         imageAlignSelect.options[1].textContent = labels.imageAlignLeft || 'Left';
         imageAlignSelect.options[2].textContent = labels.imageAlignRight || 'Right';
+
+        const imageLinkTargetSelect = modalEl.querySelector('select[name="linkTarget"]');
+        imageLinkTargetSelect.options[0].textContent = labels.linkTargetDefault || 'Same window';
+        imageLinkTargetSelect.options[1].textContent = labels.linkTargetBlank || 'New window (_blank)';
 
         document.body.appendChild(modalEl);
 
@@ -2608,9 +2822,17 @@ const HtmlEditor = (function() {
                 return;
             }
 
+            const linkUrl = form.elements.linkUrl.value.trim();
+            if (linkUrl && !isSafeUrl(linkUrl, false)) {
+                form.elements.linkUrl.focus();
+                return;
+            }
+
             editor.insertImageElement({
                 src: src,
                 alt: form.elements.alt.value,
+                linkUrl: linkUrl,
+                linkTarget: form.elements.linkTarget.value,
                 width: form.elements.width.value,
                 height: form.elements.height.value,
                 align: form.elements.align.value,
@@ -2679,6 +2901,8 @@ const HtmlEditor = (function() {
             const props = this.getImageProperties(this.editingImage);
             imageModal.form.elements.src.value = props.src;
             imageModal.form.elements.alt.value = props.alt;
+            imageModal.form.elements.linkUrl.value = props.linkUrl;
+            imageModal.form.elements.linkTarget.value = props.linkTarget === '_blank' ? '_blank' : '';
             imageModal.form.elements.width.value = props.width;
             imageModal.form.elements.height.value = props.height;
             imageModal.form.elements.align.value = props.align;
@@ -2780,7 +3004,7 @@ const HtmlEditor = (function() {
                                     '</button>' +
                                 '</div>' +
                             '</div>' +
-                            '<div class="mb-3">' +
+                            '<div class="mb-3 html-editor-link-text-row">' +
                                 '<label class="form-label html-editor-link-text-label"></label>' +
                                 '<input type="text" class="form-control" name="text">' +
                             '</div>' +
@@ -2800,6 +3024,7 @@ const HtmlEditor = (function() {
                             '</div>' +
                         '</form>' +
                         '<div class="modal-footer html-editor-link-footer">' +
+                            '<button type="button" class="btn btn-outline-danger me-auto html-editor-link-remove"></button>' +
                             '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal"></button>' +
                             '<button type="button" class="btn btn-primary html-editor-link-insert"></button>' +
                         '</div>' +
@@ -2825,6 +3050,7 @@ const HtmlEditor = (function() {
         modalEl.querySelector('.html-editor-link-browse-back-label').textContent = labels.linkBack || 'Back';
         modalEl.querySelector('.html-editor-link-footer .btn-secondary').textContent = labels.cancel || 'Cancel';
         modalEl.querySelector('.html-editor-link-insert').textContent = labels.linkInsert || 'Insert';
+        modalEl.querySelector('.html-editor-link-remove').textContent = labels.linkRemove || 'Remove link';
 
         const targetSelect = modalEl.querySelector('select[name="target"]');
         targetSelect.options[0].textContent = labels.linkTargetDefault || 'Same window';
@@ -2841,6 +3067,8 @@ const HtmlEditor = (function() {
         const browseBtn = modalEl.querySelector('.html-editor-link-browse-btn');
         const browseBackBtn = modalEl.querySelector('.html-editor-link-browse-back');
         const insertBtn = modalEl.querySelector('.html-editor-link-insert');
+        const removeBtn = modalEl.querySelector('.html-editor-link-remove');
+        const textRow = modalEl.querySelector('.html-editor-link-text-row');
         const closeBtn = modalEl.querySelector('.modal-header .btn-close');
         const modalTitle = modalEl.querySelector('.modal-title');
         const bsModal = typeof bootstrap !== 'undefined' ? new bootstrap.Modal(modalEl, {
@@ -2889,6 +3117,14 @@ const HtmlEditor = (function() {
             }
 
             const url = form.elements.url.value.trim();
+            if (!url && editor.editingLink) {
+                editor.removeLink(editor.editingLink);
+                if (bsModal) {
+                    bsModal.hide();
+                }
+                return;
+            }
+
             if (!url || !isSafeUrl(url, false)) {
                 form.elements.url.focus();
                 return;
@@ -2906,12 +3142,24 @@ const HtmlEditor = (function() {
             }
         });
 
+        removeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const editor = window.BrammoEditor.activeLinkEditor;
+            if (editor && editor.editingLink) {
+                editor.removeLink(editor.editingLink);
+            }
+            if (bsModal) {
+                bsModal.hide();
+            }
+        });
+
         modalEl.addEventListener('hidden.bs.modal', function() {
             const editor = window.BrammoEditor.activeLinkEditor;
             if (editor) {
                 editor.linkDialogOpen = false;
                 editor.linkBrowseEmbedded = false;
                 editor.editingLink = null;
+                editor.linkImage = null;
                 editor.clearSavedSelection();
                 editor.showLinkFormView();
             }
@@ -2927,6 +3175,8 @@ const HtmlEditor = (function() {
             browseBtn: browseBtn,
             modalTitle: modalTitle,
             insertBtn: insertBtn,
+            removeBtn: removeBtn,
+            textRow: textRow,
             modal: bsModal,
             browseSelector: '#editor-link-modal .html-editor-link-browse-body',
         };
@@ -2949,6 +3199,7 @@ const HtmlEditor = (function() {
         linkModal.insertBtn.textContent = editing
             ? (labels.linkSave || 'Save')
             : (labels.linkInsert || 'Insert');
+        linkModal.removeBtn.classList.toggle('d-none', !editing);
     };
 
     HtmlEditor.prototype.openLinkDialog = function(anchor) {
@@ -2957,6 +3208,14 @@ const HtmlEditor = (function() {
         this.linkDialogOpen = true;
         this.clearSavedSelection();
         this.editingLink = anchor && anchor.tagName === 'A' ? anchor : this.getLinkAtSelection();
+        this.linkImage = null;
+        if (!this.editingLink) {
+            const img = this.resolveEditingImage(null);
+            if (img && this.body.contains(img)) {
+                this.editingLink = this.getImageLink(img);
+                this.linkImage = this.editingLink ? null : img;
+            }
+        }
         this.showLinkFormView();
         linkModal.form.reset();
 
@@ -2966,10 +3225,14 @@ const HtmlEditor = (function() {
             linkModal.form.elements.text.value = props.text;
             linkModal.form.elements.title.value = props.title;
             linkModal.form.elements.target.value = props.target;
-        } else {
+        } else if (!this.linkImage) {
             linkModal.form.elements.text.value = this.getSelectedText();
             this.saveSelection();
         }
+
+        // Linking an image: there is no text to edit
+        const textLink = this.editingLink ? this.isTextLink(this.editingLink) : !this.linkImage;
+        linkModal.textRow.classList.toggle('d-none', !textLink);
 
         this.updateLinkModalLabels();
         if (linkModal.browseBtn) {
@@ -4749,6 +5012,36 @@ const HtmlEditor = (function() {
         return null;
     };
 
+    /**
+     * Underline set by markup (u, ins, inline text-decoration), not by link styling.
+     *
+     * @returns {boolean}
+     */
+    HtmlEditor.prototype.isUnderlineActive = function() {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+            return false;
+        }
+
+        let node = selection.anchorNode;
+        if (node && node.nodeType === Node.TEXT_NODE) {
+            node = node.parentNode;
+        }
+
+        while (node && node !== this.body && this.body.contains(node)) {
+            if (node.nodeName === 'U' || node.nodeName === 'INS') {
+                return true;
+            }
+            const decoration = node.style ? (node.style.textDecorationLine || node.style.textDecoration || '') : '';
+            if (decoration.indexOf('underline') !== -1) {
+                return true;
+            }
+            node = node.parentNode;
+        }
+
+        return false;
+    };
+
     HtmlEditor.prototype.refreshToolbarState = function() {
         if (this.sourceMode) {
             return;
@@ -4769,17 +5062,34 @@ const HtmlEditor = (function() {
             btn.setAttribute('aria-pressed', active ? 'true' : 'false');
         });
 
+        const self = this;
         this.toolbar.querySelectorAll('button[data-cmd]').forEach(function(btn) {
             const cmd = btn.dataset.cmd;
             let active = false;
-            try {
-                active = document.queryCommandState(cmd);
-            } catch (e) {
-                active = false;
+            if (cmd === 'underline') {
+                // queryCommandState also reports the browser's own underline on links
+                active = self.isUnderlineActive();
+            } else {
+                try {
+                    active = document.queryCommandState(cmd);
+                } catch (e) {
+                    active = false;
+                }
             }
             btn.classList.toggle('active', active);
             btn.setAttribute('aria-pressed', active ? 'true' : 'false');
         });
+
+        const inLink = this.getLinksInSelection().length > 0;
+        const linkBtn = this.toolbar.querySelector('button[data-action="insertLink"]');
+        if (linkBtn) {
+            linkBtn.classList.toggle('active', inLink);
+            linkBtn.setAttribute('aria-pressed', inLink ? 'true' : 'false');
+        }
+        const unlinkBtn = this.toolbar.querySelector('button[data-action="unlink"]');
+        if (unlinkBtn) {
+            unlinkBtn.disabled = !inLink;
+        }
 
         const codeBtn = this.toolbar.querySelector('button[data-action="wrapCode"]');
         if (codeBtn) {
@@ -4882,6 +5192,8 @@ const HtmlEditor = (function() {
         }
         delete window.BrammoEditor.instances[this.id];
     };
+
+    HtmlEditor.formatHtml = formatHtml;
 
     return HtmlEditor;
 })();

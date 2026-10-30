@@ -12,10 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HTML editor** - Image dialog has alignment (`float: left` / `float: right`) and CSS class fields
 - **HTML editor** - Cell properties dialog has a CSS class field
 - **HTML editor** - Maximize button edits in the full browser window; Esc restores the inline size
+- **HTML editor** - Remove link toolbar button and Remove link button in the link dialog; saving the link dialog with an empty URL removes the link
+- **HTML editor** - Image dialog has link URL and target fields that wrap or unwrap the image in `<a>`
+- **HTML editor** - Format HTML keeps blocks with only inline content on one line (up to 120 characters)
 
 ### Changed
 
 - **ImageHelper** - `fit()` scales smaller images up to the target dimensions before padding, like `resize()` and `crop()`. Delete existing `{W}x{H}f` thumbnails to regenerate them
+
+### Fixed
+
+- **HTML editor** - Underline button is no longer shown as active inside links
+- **HTML editor** - Double-clicking a linked image opens the image dialog instead of the link dialog; editing an image link no longer replaces the image with text
+- **HTML editor** - Format HTML no longer adds blank lines when run twice, and keeps the space between inline tags (`<b>a</b> <i>b</i>`)
 
 ## [1.6.0] - 2026-10-29
 

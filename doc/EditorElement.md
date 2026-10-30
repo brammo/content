@@ -17,7 +17,11 @@ Paragraph (`<p>`) is the default block. The toolbar covers headings, inline form
 
 The last toolbar button maximizes the editor to fill the browser window; click it again or press Esc to restore the inline size.
 
-The image dialog sets URL, alt text, size, alignment (`float: left` or `float: right`), CSS class, and extra styles. Table properties and cell properties each have a CSS class field.
+The image dialog sets URL, alt text, link URL and target, size, alignment (`float: left` or `float: right`), CSS class, and extra styles. Filling the link URL wraps the image in `<a>`; clearing it removes that link. Double-clicking an image, including a linked one, opens the image dialog. Table properties and cell properties each have a CSS class field.
+
+The Remove link button unwraps the link at the caret, or every link in the selection, and keeps its content. The link dialog has a Remove link button when editing, and saving it with an empty URL also removes the link. With an image selected, the Link button links the image and hides the Text field.
+
+Format HTML (in source mode) indents block tags. A block holding only inline content stays on one line when it fits 120 characters; otherwise its content goes on its own indented line. Whitespace between tags collapses to one space, and `<pre>`, `<textarea>`, `<script>` and `<style>` content is kept as is, so formatting twice gives the same result.
 
 ## Configuration
 
