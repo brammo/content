@@ -13,7 +13,9 @@ echo $this->element('Brammo/Content.editor');
 echo $this->Form->control('body', ['type' => 'textarea', 'class' => 'editor']);
 ```
 
-Paragraph (`<p>`) is the default block. The toolbar covers headings, inline formatting, alignment, lists, links, images, tables, clear formatting, and HTML source mode.
+Paragraph (`<p>`) is the default block. The toolbar covers headings, inline formatting, alignment, lists, indent, links, images, tables, clear formatting, and HTML source mode.
+
+Increase indent and Decrease indent work on the selected blocks. In a list, Increase indent moves the item into a sub-list of the item above it (the first item of a list cannot be indented), and Decrease indent moves it up one level; later items of the same sub-list become its children. Decreasing a top-level item turns it into a paragraph. Other blocks get `margin-left` in 40px steps. Tab and Shift+Tab do the same, except in tables, where they move between cells. Shift+Tab with nothing to outdent keeps its default and moves focus out of the editor.
 
 The last toolbar button maximizes the editor to fill the browser window; click it again or press Esc to restore the inline size.
 

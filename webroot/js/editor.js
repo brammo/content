@@ -91,6 +91,8 @@ const HtmlEditor = (function() {
         'folder-open': '<path d="M5 19l2.757 -7.351a1 1 0 0 1 .936 -.649h12.307a1 1 0 0 1 .986 1.164l-.996 5.211a2 2 0 0 1 -1.964 1.625h-14.026a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v2"/>',
         'arrow-left': '<path d="M5 12l14 0"/><path d="M5 12l6 6"/><path d="M5 12l6 -6"/>',
         maximize: '<path d="M4 8v-2a2 2 0 0 1 2 -2h2"/><path d="M4 16v2a2 2 0 0 0 2 2h2"/><path d="M16 4h2a2 2 0 0 1 2 2v2"/><path d="M16 20h2a2 2 0 0 0 2 -2v-2"/>',
+        'indent-increase': '<path d="M20 6l-11 0"/><path d="M20 12l-7 0"/><path d="M20 18l-11 0"/><path d="M4 8l4 4l-4 4"/>',
+        'indent-decrease': '<path d="M20 6l-7 0"/><path d="M20 12l-9 0"/><path d="M20 18l-7 0"/><path d="M8 8l-4 4l4 4"/>',
         minimize: '<path d="M15 19v-2a2 2 0 0 1 2 -2h2"/><path d="M15 5v2a2 2 0 0 0 2 2h2"/><path d="M5 15h2a2 2 0 0 1 2 2v2"/><path d="M5 9h2a2 2 0 0 0 2 -2v-2"/>',
     };
 
@@ -109,6 +111,7 @@ const HtmlEditor = (function() {
     };
 
     const TABLE_GRID_SIZE = 10;
+    const INDENT_STEP = 40;
     const HISTORY_LIMIT = 100;
     const HISTORY_DEBOUNCE = 400;
     const SOURCE_INDENT = '  ';
@@ -852,6 +855,8 @@ const HtmlEditor = (function() {
         toolbar.appendChild(this.buildButtonGroup([
             { cmd: 'insertUnorderedList', icon: 'list', title: labels.unorderedList },
             { cmd: 'insertOrderedList', icon: 'list-numbers', title: labels.orderedList },
+            { action: 'outdent', icon: 'indent-decrease', title: labels.outdent || 'Decrease indent' },
+            { action: 'indent', icon: 'indent-increase', title: labels.indent || 'Increase indent' },
         ]));
         toolbar.appendChild(this.buildButtonGroup([
             { action: 'insertLink', icon: 'link', title: labels.link },
@@ -1347,6 +1352,12 @@ const HtmlEditor = (function() {
                 this.navigateTableCell(e.shiftKey ? -1 : 1);
                 return;
             }
+
+            // Shift+Tab with nothing to outdent keeps the default, so focus can leave the editor
+            if (this.changeIndent(e.shiftKey ? -1 : 1) || !e.shiftKey) {
+                e.preventDefault();
+            }
+            return;
         }
 
         if (!(e.ctrlKey || e.metaKey) || e.altKey) {
@@ -1511,6 +1522,12 @@ const HtmlEditor = (function() {
                 break;
             case 'unlink':
                 this.removeLink();
+                break;
+            case 'indent':
+                this.changeIndent(1);
+                break;
+            case 'outdent':
+                this.changeIndent(-1);
                 break;
             case 'insertImage':
                 this.openImageDialog();
@@ -1729,6 +1746,303 @@ const HtmlEditor = (function() {
         this.sync();
         this.commitHistory();
         this.refreshToolbarState();
+    };
+
+    /**
+     * Closest ancestor (or the node itself) inside the editor body with one of the given tag names.
+     *
+     * @param {Node|null} node
+     * @param {Array<string>} tags
+     * @returns {HTMLElement|null}
+     */
+    HtmlEditor.prototype.closestInBody = function(node, tags) {
+        while (node && node !== this.body) {
+            if (node.nodeType === Node.ELEMENT_NODE && tags.includes(node.nodeName)) {
+                return node;
+            }
+            node = node.parentNode;
+        }
+
+        return null;
+    };
+
+    /**
+     * List items and other blocks the indent commands act on.
+     * List items are the topmost selected ones, so nested items move with their parent.
+     *
+     * @returns {{items: Array<HTMLLIElement>, blocks: Array<HTMLElement>}}
+     */
+    HtmlEditor.prototype.getIndentTargets = function() {
+        const empty = { items: [], blocks: [] };
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+            return empty;
+        }
+
+        const range = selection.getRangeAt(0);
+        if (!this.body.contains(range.commonAncestorContainer)) {
+            return empty;
+        }
+
+        const selected = [];
+        const add = function(li) {
+            if (li && !selected.includes(li)) {
+                selected.push(li);
+            }
+        };
+        add(this.closestInBody(range.startContainer, ['LI']));
+        add(this.closestInBody(range.endContainer, ['LI']));
+
+        // An item counts only when the range touches its own content, not just a nested list
+        this.body.querySelectorAll('li').forEach(function(li) {
+            const own = Array.prototype.some.call(li.childNodes, function(child) {
+                if (child.nodeName === 'UL' || child.nodeName === 'OL') {
+                    return false;
+                }
+                try {
+                    return range.intersectsNode(child);
+                } catch (e) {
+                    return false;
+                }
+            });
+            if (own) {
+                add(li);
+            }
+        });
+
+        const items = selected.filter(function(li) {
+            return !selected.some(function(other) {
+                return other !== li && other.contains(li);
+            });
+        }).sort(function(a, b) {
+            return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+        });
+
+        const self = this;
+        const blocks = this.getAlignmentBlocks().filter(function(block) {
+            return !self.closestInBody(block, ['LI']);
+        });
+
+        return { items: items, blocks: blocks };
+    };
+
+    /**
+     * Indent (1) or outdent (-1) the selection: list items nest into or out of sub-lists,
+     * other blocks change their left margin.
+     *
+     * @param {number} direction
+     * @returns {boolean} Whether the content changed
+     */
+    HtmlEditor.prototype.changeIndent = function(direction) {
+        if (this.sourceMode || this.destroyed) {
+            return false;
+        }
+
+        this.focusBody();
+        const targets = this.getIndentTargets();
+        if (!targets.items.length && !targets.blocks.length) {
+            return false;
+        }
+
+        const offsets = this.getSelectionOffsets();
+        let changed = false;
+
+        if (direction > 0) {
+            targets.items.forEach(function(li) {
+                changed = this.indentListItem(li) || changed;
+            }, this);
+        } else {
+            targets.items.slice().reverse().forEach(function(li) {
+                changed = this.outdentListItem(li) || changed;
+            }, this);
+        }
+
+        targets.blocks.forEach(function(block) {
+            changed = this.adjustBlockIndent(block, direction) || changed;
+        }, this);
+
+        if (!changed) {
+            return false;
+        }
+
+        this.restoreSelectionOffsets(offsets);
+        this.sync();
+        this.commitHistory();
+        this.refreshToolbarState();
+        return true;
+    };
+
+    /**
+     * Move a list item into a sub-list of its previous sibling.
+     *
+     * @param {HTMLLIElement} li
+     * @returns {boolean}
+     */
+    HtmlEditor.prototype.indentListItem = function(li) {
+        const list = li.parentNode;
+        const prev = li.previousElementSibling;
+        if (!list || !prev || prev.nodeName !== 'LI') {
+            return false;
+        }
+
+        let target = prev.lastElementChild;
+        if (!target || (target.nodeName !== 'UL' && target.nodeName !== 'OL')) {
+            target = document.createElement(list.nodeName.toLowerCase());
+            prev.appendChild(target);
+        }
+        target.appendChild(li);
+
+        return true;
+    };
+
+    /**
+     * Move a nested list item up one level; a top-level item becomes a paragraph.
+     *
+     * @param {HTMLLIElement} li
+     * @returns {boolean}
+     */
+    HtmlEditor.prototype.outdentListItem = function(li) {
+        const list = li.parentNode;
+        if (!list || (list.nodeName !== 'UL' && list.nodeName !== 'OL')) {
+            return false;
+        }
+
+        const following = [];
+        for (let next = li.nextSibling; next; next = next.nextSibling) {
+            following.push(next);
+        }
+
+        const parentItem = list.parentNode;
+        if (parentItem && parentItem.nodeName === 'LI' && this.body.contains(parentItem)) {
+            // Later siblings become children of the moved item, keeping their visual position
+            if (following.some(function(node) { return node.nodeName === 'LI'; })) {
+                let sub = li.lastElementChild;
+                if (!sub || (sub.nodeName !== 'UL' && sub.nodeName !== 'OL')) {
+                    sub = document.createElement(list.nodeName.toLowerCase());
+                    li.appendChild(sub);
+                }
+                following.forEach(function(node) {
+                    sub.appendChild(node);
+                });
+            }
+            parentItem.parentNode.insertBefore(li, parentItem.nextSibling);
+            if (!list.querySelector('li')) {
+                list.remove();
+            }
+            return true;
+        }
+
+        if (following.some(function(node) { return node.nodeName === 'LI'; })) {
+            const rest = list.cloneNode(false);
+            following.forEach(function(node) {
+                rest.appendChild(node);
+            });
+            list.parentNode.insertBefore(rest, list.nextSibling);
+        }
+
+        const fragment = document.createDocumentFragment();
+        let paragraph = null;
+        const flush = function() {
+            if (paragraph) {
+                fragment.appendChild(paragraph);
+                paragraph = null;
+            }
+        };
+
+        Array.prototype.slice.call(li.childNodes).forEach(function(node) {
+            const isBlock = node.nodeType === Node.ELEMENT_NODE &&
+                !INLINE_TAGS[node.nodeName.toLowerCase()];
+            if (isBlock) {
+                flush();
+                fragment.appendChild(node);
+                return;
+            }
+            if (!paragraph) {
+                paragraph = document.createElement('p');
+                if (li.style.textAlign) {
+                    paragraph.style.textAlign = li.style.textAlign;
+                }
+            }
+            paragraph.appendChild(node);
+        });
+        flush();
+
+        if (!fragment.firstChild || fragment.firstChild.nodeType !== Node.ELEMENT_NODE ||
+            fragment.firstChild.nodeName === 'UL' || fragment.firstChild.nodeName === 'OL') {
+            const blank = document.createElement('p');
+            blank.appendChild(document.createElement('br'));
+            fragment.insertBefore(blank, fragment.firstChild);
+        }
+
+        list.parentNode.insertBefore(fragment, list.nextSibling);
+        li.remove();
+        if (!list.querySelector('li')) {
+            list.remove();
+        }
+
+        return true;
+    };
+
+    /**
+     * Left margin of a block in pixels.
+     *
+     * @param {HTMLElement} block
+     * @returns {number}
+     */
+    HtmlEditor.prototype.getBlockIndent = function(block) {
+        const margin = block.style.marginLeft;
+        if (!margin) {
+            return 0;
+        }
+        if (/px$/.test(margin)) {
+            return parseFloat(margin) || 0;
+        }
+
+        return parseFloat(window.getComputedStyle(block).marginLeft) || 0;
+    };
+
+    /**
+     * Change a block's left margin by one INDENT_STEP.
+     *
+     * @param {HTMLElement} block
+     * @param {number} direction
+     * @returns {boolean}
+     */
+    HtmlEditor.prototype.adjustBlockIndent = function(block, direction) {
+        const current = this.getBlockIndent(block);
+        const steps = direction > 0
+            ? Math.floor(current / INDENT_STEP) + 1
+            : Math.ceil(current / INDENT_STEP) - 1;
+        const value = Math.max(0, steps * INDENT_STEP);
+
+        if (value === current && (value > 0 || !block.style.marginLeft)) {
+            return false;
+        }
+
+        if (value > 0) {
+            block.style.marginLeft = value + 'px';
+        } else {
+            block.style.removeProperty('margin-left');
+            if (!block.style.length) {
+                block.removeAttribute('style');
+            }
+        }
+
+        return true;
+    };
+
+    /**
+     * @returns {boolean}
+     */
+    HtmlEditor.prototype.canOutdent = function() {
+        const targets = this.getIndentTargets();
+        if (targets.items.length) {
+            return true;
+        }
+
+        return targets.blocks.some(function(block) {
+            return this.getBlockIndent(block) > 0;
+        }, this);
     };
 
     HtmlEditor.prototype.wrapCode = function() {
@@ -5096,6 +5410,11 @@ const HtmlEditor = (function() {
             const inCode = !!this.getCodeAtSelection();
             codeBtn.classList.toggle('active', inCode);
             codeBtn.setAttribute('aria-pressed', inCode ? 'true' : 'false');
+        }
+
+        const outdentBtn = this.toolbar.querySelector('button[data-action="outdent"]');
+        if (outdentBtn) {
+            outdentBtn.disabled = !this.canOutdent();
         }
 
         this.refreshHistoryButtons();

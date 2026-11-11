@@ -100,6 +100,8 @@ class EditorElementTest extends TestCase
         $this->assertStringContainsString('"linkRemove":"Remove link"', $script);
         $this->assertStringContainsString('"imageLink":"Link URL"', $script);
         $this->assertStringContainsString('"imageLinkTarget":"Open in"', $script);
+        $this->assertStringContainsString('"indent":"Increase indent"', $script);
+        $this->assertStringContainsString('"outdent":"Decrease indent"', $script);
     }
 
     /**

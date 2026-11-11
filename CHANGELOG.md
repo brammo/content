@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- **HTML editor** - Increase / Decrease indent buttons. In a list they nest the item into a sub-list or move it up a level (a top-level item becomes a paragraph); other blocks get `margin-left` in 40px steps
+- **HTML editor** - Tab / Shift+Tab indent and outdent outside tables; Shift+Tab with nothing to outdent moves focus out of the editor
+
 ## [1.7.0] - 2026-10-30
 
 ### Added

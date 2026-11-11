@@ -187,6 +187,12 @@ msgstr "Няма"
 msgid "Numbered list"
 msgstr "Номериран списък"
 
+msgid "Increase indent"
+msgstr "Увеличи отстъпа"
+
+msgid "Decrease indent"
+msgstr "Намали отстъпа"
+
 msgid "Paragraph"
 msgstr "Параграф"
 
