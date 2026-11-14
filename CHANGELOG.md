@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.8.0] - 2026-11-14
+
 ### Added
 
 - **HTML editor** - Increase / Decrease indent buttons. In a list they nest the item into a sub-list or move it up a level (a top-level item becomes a paragraph); other blocks get `margin-left` in 40px steps
