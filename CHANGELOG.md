@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **HTML editor** - Bold and Italic (buttons and Ctrl+B / Ctrl+I) write `<strong>` and `<em>` instead of `<b>` and `<i>`. Existing `<b>` / `<i>` without attributes are converted on the next edit
 - **HTML editor** - An emptied editor submits an empty string instead of `<p><br></p>`. `required` on the textarea moves to `aria-required` on the editing area while the editor is active
 - **HTML editor** - Linking selected text wraps it and keeps its formatting when the Text field is unchanged
 - **HTML editor** - A `div` loaded from HTML, restored by undo, or kept through source mode is no longer turned into a paragraph when typed in

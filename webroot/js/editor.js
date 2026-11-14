@@ -917,7 +917,11 @@ const HtmlEditor = (function() {
         this.body.addEventListener('compositionstart', function() {
             this.ensureParagraph();
         }.bind(this));
-        this.body.addEventListener('input', function() {
+        this.body.addEventListener('input', function(e) {
+            // Ctrl+B / Ctrl+I and typing with bold or italic switched on also insert <b> / <i>
+            if (!e.isComposing) {
+                this.normalizeEmphasisTags();
+            }
             this.sync();
             if (!this.historyApplying) {
                 this.scheduleHistoryCommit();
@@ -1687,9 +1691,61 @@ const HtmlEditor = (function() {
     HtmlEditor.prototype.execCommand = function(cmd) {
         this.focusBody();
         document.execCommand(cmd, false, null);
+        this.normalizeEmphasisTags();
         this.sync();
         this.commitHistory();
         this.refreshToolbarState();
+    };
+
+    /**
+     * Browsers write bold and italic as <b> and <i>; turn those into <strong> and <em>.
+     * Elements with attributes (icon fonts such as <i class="...">) are left alone.
+     */
+    HtmlEditor.prototype.normalizeEmphasisTags = function() {
+        const found = Array.prototype.filter.call(this.body.querySelectorAll('b, i'), function(el) {
+            return el.attributes.length === 0;
+        });
+        if (!found.length) {
+            return;
+        }
+
+        // Moving nodes resets a live range, so remember its boundaries and set them again
+        const selection = window.getSelection();
+        const range = selection && selection.rangeCount ? selection.getRangeAt(0) : null;
+        const saved = range && this.body.contains(range.commonAncestorContainer) ? {
+            startNode: range.startContainer,
+            startOffset: range.startOffset,
+            endNode: range.endContainer,
+            endOffset: range.endOffset,
+        } : null;
+
+        found.forEach(function(el) {
+            const replacement = document.createElement(el.nodeName === 'B' ? 'strong' : 'em');
+            while (el.firstChild) {
+                replacement.appendChild(el.firstChild);
+            }
+            el.parentNode.replaceChild(replacement, el);
+            if (saved) {
+                if (saved.startNode === el) {
+                    saved.startNode = replacement;
+                }
+                if (saved.endNode === el) {
+                    saved.endNode = replacement;
+                }
+            }
+        });
+
+        if (saved) {
+            try {
+                const restored = document.createRange();
+                restored.setStart(saved.startNode, saved.startOffset);
+                restored.setEnd(saved.endNode, saved.endOffset);
+                selection.removeAllRanges();
+                selection.addRange(restored);
+            } catch (e) {
+                // Ignore invalid restored ranges.
+            }
+        }
     };
 
     /**

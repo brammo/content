@@ -29,6 +29,8 @@ Insert row and Delete row keep merged cells intact: a cell that spans the affect
 
 A table inserted while the caret is in a paragraph, heading, or preformatted block goes after that block (an empty block is replaced), because those blocks cannot contain a table. A row added next to the header row is a data row, and a column added next to the header column is a data column; a column added inside a header row gets a header cell there. Saving Table properties changes cell types only for the Header row or Header column checkbox you changed.
 
+Bold and Italic write `<strong>` and `<em>`, from the toolbar and from Ctrl+B / Ctrl+I. `<b>` and `<i>` without attributes already in the content are converted on the next edit; ones with attributes, such as icon-font `<i class="...">`, are left alone.
+
 Clear formatting works on the selection: it removes inline formatting (bold, italic, spans, fonts) and the styles, classes, and other attributes of the blocks the selection touches, without moving content. With nothing selected it asks first, then strips styles, classes, and spans from the whole document and keeps bold, italic, and underline. It never removes content such as iframes or comments.
 
 The Remove link button unwraps the link at the caret, or every link in the selection, and keeps its content. The link dialog has a Remove link button when editing, and saving it with an empty URL also removes the link. With an image selected, the Link button links the image and hides the Text field. Linking selected text keeps its formatting as long as the Text field is left unchanged; typing a different text replaces the selection with that text.
