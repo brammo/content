@@ -12,8 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HTML editor** - Increase / Decrease indent buttons. In a list they nest the item into a sub-list or move it up a level (a top-level item becomes a paragraph); other blocks get `margin-left` in 40px steps
 - **HTML editor** - Tab / Shift+Tab indent and outdent outside tables; Shift+Tab with nothing to outdent moves focus out of the editor
 
+- **HTML editor** - Code button wraps the selection in `<code>` or removes it; Edit HTML has a new icon
+- **HTML editor** - Esc, then Tab or Shift+Tab, moves focus out of the editor; the editing area announces this hint and is named by the field's label
+- **HTML editor** - Per-field settings with `data-editor-height`, `data-editor-table-class`, `data-editor-status-bar`, and `data-editor-clean-on-paste` on the textarea
+
 ### Changed
 
+- **HTML editor** - An emptied editor submits an empty string instead of `<p><br></p>`. `required` on the textarea moves to `aria-required` on the editing area while the editor is active
+- **HTML editor** - Linking selected text wraps it and keeps its formatting when the Text field is unchanged
+- **HTML editor** - A `div` loaded from HTML, restored by undo, or kept through source mode is no longer turned into a paragraph when typed in
+- **HTML editor** - The status bar is no longer a live region, so screen readers do not read the element path on every caret move
+- **HTML editor** - With browse URLs set but no `FileBrowser` loaded, the editors start without browsing instead of failing
 - **HTML editor** - Clear formatting on a selection also removes bold, italic, and other inline formatting, and cleans the selected blocks in place. On the whole document it no longer deletes iframes, forms, SVG, or comments, and keeps `&nbsp;`
 - **HTML editor** - A table inserted from inside a paragraph, heading, or preformatted block goes after that block instead of inside it
 - **HTML editor** - `formaction` and `form` attributes are removed from loaded content. Form fields in the content are left out of the surrounding form's data, content buttons and forms cannot submit it, and content `<style>` elements are switched off while editing
@@ -29,6 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HTML editor** - A selection ending at the start of the next block (triple click) also aligned, indented, merged, or unlinked that next block
 - **HTML editor** - An image selected with the keyboard was not recognised, and a removed image could still open the Edit image dialog
 - **HTML editor** - Link and image dialogs focus their URL field when they open
+- **HTML editor** - Insert row and Delete row broke tables with cells merged across rows; Merge cells left empty rows and mishandled partly selected merged cells
+- **HTML editor** - Browse URLs that already had a query string produced a broken file browser URL
+- **HTML editor** - Typing scanned the whole content three times per keystroke to refresh the toolbar; it now does so once per frame
 
 ## [1.7.0] - 2026-10-30
 

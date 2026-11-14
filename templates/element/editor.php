@@ -7,6 +7,8 @@
  * File and image browsing stays off unless both $imagesUrl and $filesUrl are set.
  *
  * Settings precedence: view variables, then Configure Content.Editor, then defaults.
+ * A textarea can override them for itself with data-editor-height, data-editor-table-class,
+ * data-editor-status-bar, and data-editor-clean-on-paste.
  *
  * @var \Cake\View\View $this
  * @var int|null $height
@@ -115,6 +117,7 @@ $labels = [
     'undo' => __d('brammo/content', 'Undo'),
     'redo' => __d('brammo/content', 'Redo'),
     'elementPath' => __d('brammo/content', 'Element path'),
+    'tabHint' => __d('brammo/content', 'Press Esc, then Tab to leave the editor'),
     'maximize' => __d('brammo/content', 'Maximize'),
     'restore' => __d('brammo/content', 'Restore'),
     'table' => __d('brammo/content', 'Table'),
@@ -179,18 +182,30 @@ $this->append('script');
         const browseUrl = <?= json_encode($imagesUrl, $jsonFlags) ?>;
         const filesBrowseUrl = <?= json_encode($filesUrl, $jsonFlags) ?>;
         const modalTitle = <?= json_encode($fileBrowserTitle, $jsonFlags) ?>;
-        const fileBrowser = new FileBrowser(
-            <?= json_encode($fileBrowserModal, $jsonFlags) ?>,
-            modalTitle
-        );
+        // Without the file browser script the editors still start, with browsing off
+        let fileBrowser = null;
+        if (typeof FileBrowser === 'function') {
+            fileBrowser = new FileBrowser(
+                <?= json_encode($fileBrowserModal, $jsonFlags) ?>,
+                modalTitle
+            );
+        } else {
+            console.warn('Brammo/Content.editor: FileBrowser is not loaded, file browsing is off.');
+        }
         <?php endif; ?>
 
+        // "false" or "0" in a data attribute turns a setting off, anything else turns it on
+        const flag = function(value, fallback) {
+            return value === undefined ? fallback : value !== 'false' && value !== '0';
+        };
+
         document.querySelectorAll('textarea.editor').forEach(function(textarea) {
+            const data = textarea.dataset;
             new HtmlEditor(textarea, {
-                height: height,
-                cleanOnPaste: cleanOnPaste,
-                statusBar: statusBar,
-                tableClass: tableClass,
+                height: parseInt(data.editorHeight, 10) || height,
+                cleanOnPaste: flag(data.editorCleanOnPaste, cleanOnPaste),
+                statusBar: flag(data.editorStatusBar, statusBar),
+                tableClass: data.editorTableClass === undefined ? tableClass : data.editorTableClass,
                 labels: labels,
                 <?php if ($browse) : ?>
                 browseUrl: browseUrl,

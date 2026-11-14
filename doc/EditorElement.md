@@ -17,15 +17,21 @@ Paragraph (`<p>`) is the default block. The toolbar covers headings, inline form
 
 Increase indent and Decrease indent work on the selected blocks. In a list, Increase indent moves the item into a sub-list of the item above it (the first item of a list cannot be indented), and Decrease indent moves it up one level; later items of the same sub-list become its children. Decreasing a top-level item turns it into a paragraph. Other blocks get `margin-left` in 40px steps. Tab and Shift+Tab do the same, except in tables, where they move between cells. Shift+Tab with nothing to outdent keeps its default and moves focus out of the editor.
 
+To leave the editor with the keyboard, press Esc and then Tab (or Shift+Tab). Screen readers announce this hint on the editing area. The field's `<label>` names the editing area, and clicking it puts the caret there.
+
+The Code button wraps the selection in `<code>`, or removes the `<code>` around the caret. It does nothing for a selection that spans several blocks or table cells.
+
 The last toolbar button maximizes the editor to fill the browser window; click it again or press Esc to restore the inline size.
 
 The image dialog sets URL, alt text, link URL and target, size, alignment (`float: left` or `float: right`), CSS class, and extra styles. Filling the link URL wraps the image in `<a>`; clearing it removes that link. Double-clicking an image, including a linked one, opens the image dialog. Table properties and cell properties each have a CSS class field.
+
+Insert row and Delete row keep merged cells intact: a cell that spans the affected row grows or shrinks by one row. Merge cells widens the selection to whole cells when it only partly covers a merged one.
 
 A table inserted while the caret is in a paragraph, heading, or preformatted block goes after that block (an empty block is replaced), because those blocks cannot contain a table. A row added next to the header row is a data row, and a column added next to the header column is a data column; a column added inside a header row gets a header cell there. Saving Table properties changes cell types only for the Header row or Header column checkbox you changed.
 
 Clear formatting works on the selection: it removes inline formatting (bold, italic, spans, fonts) and the styles, classes, and other attributes of the blocks the selection touches, without moving content. With nothing selected it asks first, then strips styles, classes, and spans from the whole document and keeps bold, italic, and underline. It never removes content such as iframes or comments.
 
-The Remove link button unwraps the link at the caret, or every link in the selection, and keeps its content. The link dialog has a Remove link button when editing, and saving it with an empty URL also removes the link. With an image selected, the Link button links the image and hides the Text field.
+The Remove link button unwraps the link at the caret, or every link in the selection, and keeps its content. The link dialog has a Remove link button when editing, and saving it with an empty URL also removes the link. With an image selected, the Link button links the image and hides the Text field. Linking selected text keeps its formatting as long as the Text field is left unchanged; typing a different text replaces the selection with that text.
 
 Format HTML (in source mode) indents block tags. A block holding only inline content stays on one line when it fits 120 characters; otherwise its content goes on its own indented line. Whitespace between tags collapses to one space, and `<pre>`, `<textarea>`, `<script>` and `<style>` content is kept as is, so formatting twice gives the same result.
 
@@ -51,6 +57,23 @@ Configure::write('Content.Editor', [
 
 View variables passed to the element override `Content.Editor`. Controller view variables with the same names (`height`, `folder`, …) also apply, because CakePHP elements see all view variables.
 
+A single field can override these settings with data attributes. `false` or `0` turns a switch off.
+
+```php
+echo $this->Form->control('summary', [
+    'type' => 'textarea',
+    'class' => 'editor',
+    'data-editor-height' => 200,
+    'data-editor-status-bar' => 'false',
+    'data-editor-clean-on-paste' => 'false',
+    'data-editor-table-class' => 'table',
+]);
+```
+
+## Empty content and required fields
+
+When the editing area holds nothing but empty paragraphs and line breaks, the textarea gets an empty string, so a "not empty" rule on the server works. A `required` attribute on the textarea is moved to `aria-required` on the editing area while the editor is active: the textarea is hidden, so the browser could not show its message and would block the form without one. Validate required content on the server.
+
 ## Content sanitising
 
 Links and images only keep `http:`, `https:`, `mailto:`, `tel:`, and relative URLs; other schemes such as `javascript:` are removed. This applies to pasted HTML, the link and image dialogs, and HTML loaded from the textarea or source mode, where inline event handlers (`onclick`, `onerror`, …), `srcdoc`, and `<script>`, `<object>`, `<embed>`, `<base>`, `<meta>`, and `<link>` are removed as well. Iframes (for example video embeds) are kept when their `src` is safe.
@@ -75,7 +98,7 @@ editor.destroy();
 
 ## File browsing
 
-Browsing stays off unless both `imagesUrl` and `filesUrl` are set. The page must load a `FileBrowser` constructor before this element's inline script (for example `brammo/admin` loads `file-browser.js` and passes the File Manager URLs).
+Browsing stays off unless both `imagesUrl` and `filesUrl` are set. The page must load a `FileBrowser` constructor before this element's inline script (for example `brammo/admin` loads `file-browser.js` and passes the File Manager URLs). If it is missing, the editors still start with browsing off and a warning is logged to the console.
 
 ```php
 echo $this->element('Brammo/Content.editor', [

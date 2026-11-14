@@ -94,6 +94,9 @@ msgstr "Редактирай таблица"
 msgid "Element path"
 msgstr "Път на елемента"
 
+msgid "Press Esc, then Tab to leave the editor"
+msgstr "Натиснете Esc, след това Tab, за да излезете от редактора"
+
 msgid "Format HTML"
 msgstr "Форматирай HTML"
 

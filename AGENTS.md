@@ -65,6 +65,9 @@ composer analyse
 - Config (host `Configure::write`, plugin bootstrap stays off): `Content.Editor.height`, `cleanOnPaste`, `statusBar`, `tableClass`
 - File browsing is off unless the element receives both `imagesUrl` and `filesUrl`. Do not reference `FileBrowser` in the default script
 - In `editor.js`, hide link/image browse buttons when `options.fileBrowser` is missing
+- A textarea can override element settings with `data-editor-height`, `data-editor-table-class`, `data-editor-status-bar`, `data-editor-clean-on-paste`
+- An emptied editor syncs `''` to the textarea (not `<p><br></p>`); `required` moves from the textarea to `aria-required` on the editing area
+- Tab indents; Esc then Tab leaves the editor. Keep that escape working when changing key handling
 - `new HtmlEditor()` returns the existing instance for an already-initialized textarea; `destroy()` restores the textarea
 - No JS test suite: check editor changes in a browser
 

@@ -85,7 +85,8 @@ const HtmlEditor = (function() {
         'link-off': '<path d="M9 15l3 -3m2 -2l1 -1"/><path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .463"/><path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463"/><path d="M3 3l18 18"/>',
         photo: '<path d="M15 8h.01"/><path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12"/><path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5"/><path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3"/>',
         eraser: '<path d="M19 20h-10.5l-4.21 -4.3a1 1 0 0 1 0 -1.41l10 -10a1 1 0 0 1 1.41 0l5 5a1 1 0 0 1 0 1.41l-9.2 9.3"/><path d="M18 13.3l-6.3 -6.3"/>',
-        html: '<path d="M7 8l-4 4l4 4"/><path d="M17 8l4 4l-4 4"/><path d="M14 4l-4 16"/>',
+        code: '<path d="M7 8l-4 4l4 4"/><path d="M17 8l4 4l-4 4"/><path d="M14 4l-4 16"/>',
+        'file-code': '<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2"/><path d="M10 13l-1 2l1 2"/><path d="M14 13l1 2l-1 2"/>',
         braces: '<path d="M7 4a2 2 0 0 0 -2 2v3a2 3 0 0 1 -2 3a2 3 0 0 1 2 3v3a2 2 0 0 0 2 2"/><path d="M17 4a2 2 0 0 1 2 2v3a2 3 0 0 0 2 3a2 3 0 0 0 -2 3v3a2 2 0 0 1 -2 2"/>',
         table: '<path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14"/><path d="M3 10h18"/><path d="M10 3v18"/>',
         'folder-open': '<path d="M5 19l2.757 -7.351a1 1 0 0 1 .936 -.649h12.307a1 1 0 0 1 .986 1.164l-.996 5.211a2 2 0 0 1 -1.964 1.625h-14.026a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v2"/>',
@@ -659,6 +660,24 @@ const HtmlEditor = (function() {
     }
 
     /**
+     * Add query parameters to a URL that may already have a query string.
+     *
+     * @param {string} url
+     * @param {Object<string, string>} params
+     * @returns {string}
+     */
+    function addQuery(url, params) {
+        const query = Object.keys(params).map(function(key) {
+            return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+        }).join('&');
+        const hashAt = url.indexOf('#');
+        const base = hashAt === -1 ? url : url.slice(0, hashAt);
+        const hash = hashAt === -1 ? '' : url.slice(hashAt);
+
+        return base + (base.indexOf('?') === -1 ? '?' : '&') + query + hash;
+    }
+
+    /**
      * Values a form field adds to its form's data. Submit and image buttons add nothing unless
      * they submit the form, which content buttons cannot do.
      *
@@ -772,6 +791,13 @@ const HtmlEditor = (function() {
         this.onSourceScroll = this.onSourceScroll.bind(this);
         this.onMaximizedKeyDown = this.onMaximizedKeyDown.bind(this);
         this.onFormData = this.onFormData.bind(this);
+        this.onLabelClick = this.onLabelClick.bind(this);
+        this.tabEscape = false;
+        this.toolbarFrame = null;
+        this.linkSelectedText = '';
+        this.fieldLabel = null;
+        this.fieldLabelHadId = false;
+        this.textareaRequired = textarea.required;
 
         window.BrammoEditor.instances[this.id] = this;
         this.init();
@@ -803,7 +829,6 @@ const HtmlEditor = (function() {
             wrapper.classList.add('has-statusbar');
             this.statusBar = document.createElement('div');
             this.statusBar.className = 'html-editor-statusbar';
-            this.statusBar.setAttribute('aria-live', 'polite');
             this.statusBar.setAttribute('aria-label', labels.elementPath || '');
             wrapper.appendChild(this.statusBar);
         }
@@ -818,6 +843,34 @@ const HtmlEditor = (function() {
         this.body.setAttribute('role', 'textbox');
         this.body.setAttribute('aria-multiline', 'true');
         wrapper.insertBefore(this.body, this.textarea);
+
+        // Tab indents, so tell keyboard and screen reader users how to leave
+        const hint = document.createElement('div');
+        hint.id = 'editor-hint-' + this.id;
+        hint.className = 'visually-hidden';
+        hint.textContent = labels.tabHint || 'Press Esc, then Tab to leave the editor';
+        wrapper.appendChild(hint);
+        this.body.setAttribute('aria-describedby', hint.id);
+
+        // The field's label names the editing area and focuses it when clicked
+        this.fieldLabel = Array.prototype.filter.call(document.querySelectorAll('label[for]'), function(label) {
+            return label.htmlFor === this.textarea.id;
+        }, this)[0] || null;
+        if (this.fieldLabel) {
+            this.fieldLabelHadId = !!this.fieldLabel.id;
+            if (!this.fieldLabel.id) {
+                this.fieldLabel.id = 'editor-label-' + this.id;
+            }
+            this.body.setAttribute('aria-labelledby', this.fieldLabel.id);
+            this.fieldLabel.addEventListener('click', this.onLabelClick);
+        }
+
+        // The browser cannot show its "required" message on the hidden textarea and would
+        // block the form without one, so the server reports an empty field instead
+        if (this.textareaRequired) {
+            this.textarea.required = false;
+            this.body.setAttribute('aria-required', 'true');
+        }
 
         this.sourceWrap = document.createElement('div');
         this.sourceWrap.className = 'html-editor-source-wrap';
@@ -869,18 +922,22 @@ const HtmlEditor = (function() {
             if (!this.historyApplying) {
                 this.scheduleHistoryCommit();
             }
-            this.refreshToolbarState();
+            this.scheduleToolbarRefresh();
         }.bind(this));
         this.body.addEventListener('blur', function() {
+            this.tabEscape = false;
             this.commitHistory();
             this.sync();
         }.bind(this));
-        this.body.addEventListener('keyup', this.refreshToolbarState.bind(this));
+        this.body.addEventListener('keyup', this.scheduleToolbarRefresh.bind(this));
         this.body.addEventListener('keydown', this.onKeyDown);
         this.body.addEventListener('beforeinput', this.onBeforeInput);
+        this.body.addEventListener('mousedown', function() {
+            this.tabEscape = false;
+        }.bind(this));
         this.body.addEventListener('mouseup', function() {
             this.trackSelectedImage();
-            this.refreshToolbarState();
+            this.scheduleToolbarRefresh();
         }.bind(this));
         this.body.addEventListener('click', function(e) {
             const img = e.target.closest('img');
@@ -953,6 +1010,7 @@ const HtmlEditor = (function() {
             { cmd: 'bold', icon: 'bold', title: labels.bold },
             { cmd: 'italic', icon: 'italic', title: labels.italic },
             { cmd: 'underline', icon: 'underline', title: labels.underline },
+            { action: 'wrapCode', icon: 'code', title: labels.code || 'Code' },
         ]));
         toolbar.appendChild(this.buildButtonGroup([
             { action: 'alignLeft', icon: 'align-left', title: labels.alignLeft },
@@ -976,7 +1034,7 @@ const HtmlEditor = (function() {
             { action: 'clearFormat', icon: 'eraser', title: labels.clearFormat },
         ]));
         toolbar.appendChild(this.buildButtonGroup([
-            { action: 'toggleSource', icon: 'html', title: labels.source },
+            { action: 'toggleSource', icon: 'file-code', title: labels.source },
         ]));
         this.sourceGroup = this.buildButtonGroup([
             { action: 'formatSource', icon: 'braces', title: labels.formatSource },
@@ -1387,6 +1445,7 @@ const HtmlEditor = (function() {
         this.cancelHistoryCommit();
 
         this.body.innerHTML = entry.html;
+        this.markExplicitDivs();
         this.selectedImage = null;
         this.editingImage = null;
         this.editingLink = null;
@@ -1471,6 +1530,13 @@ const HtmlEditor = (function() {
         this.setDefaultBlock();
         if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'Enter' || e.key.length === 1)) {
             this.ensureParagraph();
+        }
+
+        // Esc, then Tab or Shift+Tab, moves focus out instead of indenting
+        const leave = this.tabEscape;
+        this.tabEscape = e.key === 'Escape' && !(e.ctrlKey || e.metaKey || e.altKey || e.shiftKey);
+        if (e.key === 'Tab' && leave) {
+            return;
         }
 
         if (e.key === 'Tab' && !(e.ctrlKey || e.metaKey || e.altKey)) {
@@ -1841,10 +1907,12 @@ const HtmlEditor = (function() {
             }
         });
 
-        return intersecting.filter(function(el) {
-            return !intersecting.some(function(other) {
-                return other !== el && el.contains(other);
-            });
+        // In document order an element's descendants come right after it, so an element is
+        // innermost when the next intersecting one is not inside it
+        return intersecting.filter(function(el, index) {
+            const next = intersecting[index + 1];
+
+            return !next || !el.contains(next);
         });
     };
 
@@ -1862,10 +1930,11 @@ const HtmlEditor = (function() {
     };
 
     /**
+     * @param {Array<HTMLElement>} [alignmentBlocks] Result of getAlignmentBlocks(), when already known
      * @returns {string}
      */
-    HtmlEditor.prototype.getCurrentTextAlign = function() {
-        const blocks = this.getAlignmentBlocks();
+    HtmlEditor.prototype.getCurrentTextAlign = function(alignmentBlocks) {
+        const blocks = alignmentBlocks || this.getAlignmentBlocks();
         if (!blocks.length) {
             return '';
         }
@@ -1934,9 +2003,10 @@ const HtmlEditor = (function() {
      * List items and other blocks the indent commands act on.
      * List items are the topmost selected ones, so nested items move with their parent.
      *
+     * @param {Array<HTMLElement>} [alignmentBlocks] Result of getAlignmentBlocks(), when already known
      * @returns {{items: Array<HTMLLIElement>, blocks: Array<HTMLElement>}}
      */
-    HtmlEditor.prototype.getIndentTargets = function() {
+    HtmlEditor.prototype.getIndentTargets = function(alignmentBlocks) {
         const empty = { items: [], blocks: [] };
         const range = this.getSelectionRange();
         if (!range) {
@@ -1982,7 +2052,7 @@ const HtmlEditor = (function() {
         });
 
         const self = this;
-        const blocks = this.getAlignmentBlocks().filter(function(block) {
+        const blocks = (alignmentBlocks || this.getAlignmentBlocks()).filter(function(block) {
             return !self.closestInBody(block, ['LI']);
         });
 
@@ -2195,10 +2265,11 @@ const HtmlEditor = (function() {
     };
 
     /**
+     * @param {Array<HTMLElement>} [alignmentBlocks] Result of getAlignmentBlocks(), when already known
      * @returns {boolean}
      */
-    HtmlEditor.prototype.canOutdent = function() {
-        const targets = this.getIndentTargets();
+    HtmlEditor.prototype.canOutdent = function(alignmentBlocks) {
+        const targets = this.getIndentTargets(alignmentBlocks);
         if (targets.items.length) {
             return true;
         }
@@ -2234,6 +2305,11 @@ const HtmlEditor = (function() {
 
         const range = selection.getRangeAt(0);
         if (range.collapsed || !this.body.contains(range.commonAncestorContainer)) {
+            return;
+        }
+
+        // Inline code cannot hold blocks, so a selection across blocks or cells is left alone
+        if (range.cloneContents().querySelector(BLOCK_TAGS.join(',') + ',TABLE,TR,TD,TH,UL,OL')) {
             return;
         }
 
@@ -2842,6 +2918,35 @@ const HtmlEditor = (function() {
             img.parentNode.insertBefore(anchor, img);
             anchor.appendChild(img);
             this.applyLinkProperties(anchor, props);
+            this.sync();
+            this.commitHistory();
+            this.refreshToolbarState();
+            return;
+        }
+
+        // A selection whose text was left as it was is wrapped, which keeps its formatting.
+        // Replacing it with the typed text below would flatten bold, italic, and images.
+        const squeeze = function(text) {
+            return (text || '').replace(/\s+/g, ' ').trim();
+        };
+        const saved = this.savedSelection;
+        if (
+            saved && !saved.collapsed && this.body.contains(saved.commonAncestorContainer) &&
+            (squeeze(props.text) === '' || squeeze(props.text) === squeeze(this.linkSelectedText))
+        ) {
+            this.restoreSavedSelection();
+            this.clearSavedSelection();
+            document.execCommand('createLink', false, url);
+
+            const linked = this.getSelectionRange();
+            if (linked) {
+                Array.prototype.filter.call(this.body.querySelectorAll('a[href]'), function(link) {
+                    return linked.intersectsNode(link);
+                }).forEach(function(link) {
+                    this.applyLinkProperties(link, { url: url, text: '', title: props.title, target: props.target });
+                }, this);
+            }
+
             this.sync();
             this.commitHistory();
             this.refreshToolbarState();
@@ -3493,7 +3598,7 @@ const HtmlEditor = (function() {
         this.imageBrowseEmbedded = true;
         imageModal.formView.classList.add('d-none');
         imageModal.browseView.classList.remove('d-none');
-        imageModal.modalTitle.textContent = this.options.labels.imageBrowseTitle || 'Select Image';
+        imageModal.modalTitle.textContent = (this.options.labels || {}).imageBrowseTitle || 'Select Image';
     };
 
     HtmlEditor.prototype.openImagePickerForDialog = function() {
@@ -3510,8 +3615,7 @@ const HtmlEditor = (function() {
 
         const folder = this.options.folder || 'images';
         const target = this.imageTarget.id;
-        const url = this.options.browseUrl + '?folder=' + encodeURIComponent(folder) +
-            '&target=' + encodeURIComponent(target);
+        const url = addQuery(this.options.browseUrl, { folder: folder, target: target });
 
         this.showImageBrowseView();
         this.fileBrowser.loadContent(url, imageModal.browseSelector);
@@ -3752,6 +3856,7 @@ const HtmlEditor = (function() {
         this.clearSavedSelection();
         this.editingLink = anchor && anchor.tagName === 'A' ? anchor : this.getLinkAtSelection();
         this.linkImage = null;
+        this.linkSelectedText = '';
         if (!this.editingLink) {
             const img = this.resolveEditingImage(null);
             if (img && this.body.contains(img)) {
@@ -3771,6 +3876,7 @@ const HtmlEditor = (function() {
             setSelectValue(linkModal.form.elements.target, props.target);
         } else if (!this.linkImage) {
             linkModal.form.elements.text.value = this.getSelectedText();
+            this.linkSelectedText = linkModal.form.elements.text.value;
             this.saveSelection();
         }
 
@@ -3821,7 +3927,7 @@ const HtmlEditor = (function() {
         this.linkBrowseEmbedded = true;
         linkModal.formView.classList.add('d-none');
         linkModal.browseView.classList.remove('d-none');
-        linkModal.modalTitle.textContent = this.options.labels.linkBrowseTitle || 'Select file';
+        linkModal.modalTitle.textContent = (this.options.labels || {}).linkBrowseTitle || 'Select file';
     };
 
     HtmlEditor.prototype.openLinkPickerForDialog = function() {
@@ -3838,8 +3944,7 @@ const HtmlEditor = (function() {
 
         const folder = this.options.linkFolder || 'files';
         const target = this.linkTarget.id;
-        const url = this.options.filesBrowseUrl + '?folder=' + encodeURIComponent(folder) +
-            '&target=' + encodeURIComponent(target);
+        const url = addQuery(this.options.filesBrowseUrl, { folder: folder, target: target });
 
         this.showLinkBrowseView();
         this.fileBrowser.loadContent(url, linkModal.browseSelector);
@@ -3940,6 +4045,51 @@ const HtmlEditor = (function() {
         });
 
         return matrix;
+    };
+
+    /**
+     * @param {HTMLTableCellElement} cell
+     * @param {string} name 'rowspan' or 'colspan'
+     * @returns {number}
+     */
+    HtmlEditor.prototype.getCellSpan = function(cell, name) {
+        return parseInt(cell.getAttribute(name) || '1', 10) || 1;
+    };
+
+    /**
+     * @param {HTMLTableCellElement} cell
+     * @param {string} name 'rowspan' or 'colspan'
+     * @param {number} span
+     */
+    HtmlEditor.prototype.setCellSpan = function(cell, name, span) {
+        if (span > 1) {
+            cell.setAttribute(name, String(span));
+        } else {
+            cell.removeAttribute(name);
+        }
+    };
+
+    /**
+     * Remove rows left without cells, shortening the cells that spanned them.
+     *
+     * @param {HTMLTableElement} table
+     */
+    HtmlEditor.prototype.removeEmptyTableRows = function(table) {
+        const self = this;
+        Array.prototype.slice.call(table.rows).forEach(function(tr) {
+            if (tr.cells.length || table.rows.length <= 1) {
+                return;
+            }
+
+            const seen = [];
+            (self.buildTableMatrix(table)[tr.rowIndex] || []).forEach(function(cell) {
+                if (cell && seen.indexOf(cell) === -1) {
+                    seen.push(cell);
+                    self.setCellSpan(cell, 'rowspan', self.getCellSpan(cell, 'rowspan') - 1);
+                }
+            });
+            tr.parentNode.removeChild(tr);
+        });
     };
 
     /**
@@ -4197,12 +4347,39 @@ const HtmlEditor = (function() {
         const otherRow = table.rows[otherIndex];
         const useOther = !!otherRow && !this.isHeaderLine(Array.prototype.slice.call(otherRow.cells));
 
+        // Walk the columns: a cell that spans across the new row's position grows by one row,
+        // every other column gets a new cell
+        const width = matrix.reduce(function(max, row) {
+            return Math.max(max, row.length);
+        }, 0);
+        const refCells = matrix[refIndex] || [];
+        const aboveCells = matrix[insertAt - 1] || [];
+        const belowCells = matrix[insertAt] || [];
+        const crosses = function(col) {
+            return !!aboveCells[col] && aboveCells[col] === belowCells[col];
+        };
+        const grown = [];
         const newRow = document.createElement('tr');
-        Array.prototype.slice.call(refRow.cells).forEach(function(refCell) {
-            const colspan = parseInt(refCell.getAttribute('colspan') || '1', 10) || 1;
-            let header = refCell.tagName === 'TH';
+
+        for (let col = 0; col < width;) {
+            if (crosses(col)) {
+                const spanning = aboveCells[col];
+                if (grown.indexOf(spanning) === -1) {
+                    grown.push(spanning);
+                    self.setCellSpan(spanning, 'rowspan', self.getCellSpan(spanning, 'rowspan') + 1);
+                }
+                col++;
+                continue;
+            }
+
+            const refCell = refCells[col];
+            let colspan = 1;
+            while (refCell && refCells[col + colspan] === refCell && !crosses(col + colspan)) {
+                colspan++;
+            }
+
+            let header = !!refCell && refCell.tagName === 'TH';
             if (refIsHeader) {
-                const col = (matrix[refIndex] || []).indexOf(refCell);
                 if (useOther) {
                     const other = (matrix[otherIndex] || [])[col];
                     header = !!other && other.tagName === 'TH';
@@ -4213,12 +4390,11 @@ const HtmlEditor = (function() {
                 }
             }
             const newCell = document.createElement(header ? 'th' : 'td');
-            if (colspan > 1) {
-                newCell.setAttribute('colspan', String(colspan));
-            }
+            self.setCellSpan(newCell, 'colspan', colspan);
             newCell.innerHTML = '<br>';
             newRow.appendChild(newCell);
-        });
+            col += colspan;
+        }
 
         if (insertAt >= table.rows.length) {
             (table.tBodies[0] || table).appendChild(newRow);
@@ -4338,6 +4514,36 @@ const HtmlEditor = (function() {
             return;
         }
 
+        // Cells reaching into the row from above lose one row; cells that start here and
+        // reach further down move to the next row
+        const self = this;
+        const matrix = this.buildTableMatrix(table);
+        const rowIndex = row.rowIndex;
+        const nextRow = table.rows[rowIndex + 1];
+        const nextCells = matrix[rowIndex + 1] || [];
+        const seen = [];
+        (matrix[rowIndex] || []).forEach(function(current, col) {
+            if (!current || seen.indexOf(current) !== -1) {
+                return;
+            }
+            seen.push(current);
+
+            const rowspan = self.getCellSpan(current, 'rowspan');
+            if (current.parentNode !== row) {
+                self.setCellSpan(current, 'rowspan', rowspan - 1);
+            } else if (rowspan > 1 && nextRow) {
+                self.setCellSpan(current, 'rowspan', rowspan - 1);
+                let anchor = null;
+                for (let c = col + 1; c < nextCells.length; c++) {
+                    if (nextCells[c] && nextCells[c].parentNode === nextRow) {
+                        anchor = nextCells[c];
+                        break;
+                    }
+                }
+                nextRow.insertBefore(current, anchor);
+            }
+        });
+
         row.parentNode.removeChild(row);
         this.sync();
         this.commitHistory();
@@ -4411,32 +4617,62 @@ const HtmlEditor = (function() {
         }
 
         const matrix = this.buildTableMatrix(table);
+        const bounds = new Map();
+        matrix.forEach(function(row, r) {
+            row.forEach(function(cell, c) {
+                if (!cell) {
+                    return;
+                }
+                const b = bounds.get(cell);
+                if (!b) {
+                    bounds.set(cell, { minRow: r, maxRow: r, minCol: c, maxCol: c });
+                } else {
+                    b.maxRow = Math.max(b.maxRow, r);
+                    b.maxCol = Math.max(b.maxCol, c);
+                }
+            });
+        });
+
         let minRow = Infinity;
         let maxRow = -1;
         let minCol = Infinity;
         let maxCol = -1;
-
-        cells.forEach(function(cell) {
-            for (let r = 0; r < matrix.length; r++) {
-                for (let c = 0; c < (matrix[r] || []).length; c++) {
-                    if (matrix[r][c] === cell) {
-                        minRow = Math.min(minRow, r);
-                        maxRow = Math.max(maxRow, r);
-                        minCol = Math.min(minCol, c);
-                        maxCol = Math.max(maxCol, c);
-                    }
-                }
+        const include = function(cell) {
+            const b = bounds.get(cell);
+            if (!b || (b.minRow >= minRow && b.maxRow <= maxRow && b.minCol >= minCol && b.maxCol <= maxCol)) {
+                return false;
             }
-        });
+            minRow = Math.min(minRow, b.minRow);
+            maxRow = Math.max(maxRow, b.maxRow);
+            minCol = Math.min(minCol, b.minCol);
+            maxCol = Math.max(maxCol, b.maxCol);
+
+            return true;
+        };
+        cells.forEach(include);
 
         if (!isFinite(minRow) || !isFinite(minCol)) {
             return;
         }
 
+        // Grow the rectangle until every cell it touches lies fully inside it
+        let grew = true;
+        while (grew) {
+            grew = false;
+            for (let r = minRow; r <= maxRow; r++) {
+                for (let c = minCol; c <= maxCol; c++) {
+                    const cell = (matrix[r] || [])[c];
+                    if (cell && include(cell)) {
+                        grew = true;
+                    }
+                }
+            }
+        }
+
         const unique = [];
         for (let r = minRow; r <= maxRow; r++) {
             for (let c = minCol; c <= maxCol; c++) {
-                const cell = matrix[r][c];
+                const cell = (matrix[r] || [])[c];
                 if (cell && unique.indexOf(cell) === -1) {
                     unique.push(cell);
                 }
@@ -4457,24 +4693,15 @@ const HtmlEditor = (function() {
         });
         master.innerHTML = parts.length ? parts.join('<br>') : '<br>';
 
-        const rowspan = maxRow - minRow + 1;
-        const colspan = maxCol - minCol + 1;
-        if (rowspan > 1) {
-            master.setAttribute('rowspan', String(rowspan));
-        } else {
-            master.removeAttribute('rowspan');
-        }
-        if (colspan > 1) {
-            master.setAttribute('colspan', String(colspan));
-        } else {
-            master.removeAttribute('colspan');
-        }
+        this.setCellSpan(master, 'rowspan', maxRow - minRow + 1);
+        this.setCellSpan(master, 'colspan', maxCol - minCol + 1);
 
         unique.slice(1).forEach(function(cell) {
             if (cell.parentNode) {
                 cell.parentNode.removeChild(cell);
             }
         });
+        this.removeEmptyTableRows(table);
 
         this.sync();
         this.commitHistory();
@@ -5482,7 +5709,34 @@ const HtmlEditor = (function() {
         }
 
         this.trackSelectedImage();
-        this.refreshToolbarState();
+        this.scheduleToolbarRefresh();
+    };
+
+    /**
+     * Refresh the toolbar once per frame. Typing fires input, keyup, and selectionchange
+     * together, and each refresh scans the content.
+     */
+    HtmlEditor.prototype.scheduleToolbarRefresh = function() {
+        if (this.toolbarFrame || this.destroyed) {
+            return;
+        }
+        this.toolbarFrame = requestAnimationFrame(function() {
+            this.toolbarFrame = null;
+            if (!this.destroyed) {
+                this.refreshToolbarState();
+            }
+        }.bind(this));
+    };
+
+    /**
+     * @param {MouseEvent} e
+     */
+    HtmlEditor.prototype.onLabelClick = function(e) {
+        if (this.destroyed || this.sourceMode) {
+            return;
+        }
+        e.preventDefault();
+        this.focusBody();
     };
 
     /**
@@ -5686,7 +5940,8 @@ const HtmlEditor = (function() {
             this.blockSelect.value = this.getBlockTag();
         }
 
-        const currentAlign = this.getCurrentTextAlign();
+        const alignmentBlocks = this.getAlignmentBlocks();
+        const currentAlign = this.getCurrentTextAlign(alignmentBlocks);
         this.toolbar.querySelectorAll('button[data-action]').forEach(function(btn) {
             const align = ALIGN_ACTIONS[btn.dataset.action];
             if (!align) {
@@ -5735,7 +5990,7 @@ const HtmlEditor = (function() {
 
         const outdentBtn = this.toolbar.querySelector('button[data-action="outdent"]');
         if (outdentBtn) {
-            outdentBtn.disabled = !this.canOutdent();
+            outdentBtn.disabled = !this.canOutdent(alignmentBlocks);
         }
 
         this.refreshHistoryButtons();
@@ -5784,6 +6039,17 @@ const HtmlEditor = (function() {
         sanitizeLoadedFragment(template.content);
         this.body.replaceChildren(template.content);
         this.disableContentStyles();
+        this.markExplicitDivs();
+    };
+
+    /**
+     * Treat every div now in the content as deliberate. Only a div the browser has just created
+     * for a new line is turned into a paragraph (see ensureParagraph).
+     */
+    HtmlEditor.prototype.markExplicitDivs = function() {
+        this.body.querySelectorAll('div').forEach(function(div) {
+            this.explicitDivs.add(div);
+        }, this);
     };
 
     /**
@@ -5848,10 +6114,31 @@ const HtmlEditor = (function() {
         });
     };
 
+    /**
+     * True when the content is nothing but empty paragraphs, divs, and line breaks,
+     * which is what the browser leaves in an editing area the user has emptied.
+     *
+     * @returns {boolean}
+     */
+    HtmlEditor.prototype.isContentEmpty = function() {
+        if ((this.body.textContent || '').replace(/[\s\u00a0\u200b\ufeff]/g, '') !== '') {
+            return false;
+        }
+
+        if (this.body.innerHTML.indexOf('<!--') !== -1) {
+            return false;
+        }
+
+        return !Array.prototype.some.call(this.body.querySelectorAll('*'), function(el) {
+            return ['P', 'DIV', 'BR'].indexOf(el.nodeName) === -1 || el.attributes.length > 0;
+        });
+    };
+
     HtmlEditor.prototype.sync = function() {
         if (!this.sourceMode) {
             this.disableContentStyles();
-            this.textarea.value = this.body.innerHTML;
+            // An emptied editor must submit as empty, so "required" rules on the server work
+            this.textarea.value = this.isContentEmpty() ? '' : this.body.innerHTML;
         }
     };
 
@@ -5871,6 +6158,20 @@ const HtmlEditor = (function() {
         if (this.sourceObserver) {
             this.sourceObserver.disconnect();
             this.sourceObserver = null;
+        }
+        if (this.toolbarFrame) {
+            cancelAnimationFrame(this.toolbarFrame);
+            this.toolbarFrame = null;
+        }
+        if (this.fieldLabel) {
+            this.fieldLabel.removeEventListener('click', this.onLabelClick);
+            if (!this.fieldLabelHadId) {
+                this.fieldLabel.removeAttribute('id');
+            }
+            this.fieldLabel = null;
+        }
+        if (this.textareaRequired) {
+            this.textarea.required = true;
         }
         document.removeEventListener('selectionchange', this.onSelectionChange);
         if (this.form && this.onSubmit) {

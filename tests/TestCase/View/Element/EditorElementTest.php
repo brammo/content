@@ -102,6 +102,12 @@ class EditorElementTest extends TestCase
         $this->assertStringContainsString('"imageLinkTarget":"Open in"', $script);
         $this->assertStringContainsString('"indent":"Increase indent"', $script);
         $this->assertStringContainsString('"outdent":"Decrease indent"', $script);
+        $this->assertStringContainsString('"code":"Code"', $script);
+        $this->assertStringContainsString('"tabHint":"Press Esc, then Tab to leave the editor"', $script);
+        $this->assertStringContainsString('height: parseInt(data.editorHeight, 10) || height', $script);
+        $this->assertStringContainsString('cleanOnPaste: flag(data.editorCleanOnPaste, cleanOnPaste)', $script);
+        $this->assertStringContainsString('statusBar: flag(data.editorStatusBar, statusBar)', $script);
+        $this->assertStringContainsString('data.editorTableClass === undefined ? tableClass', $script);
     }
 
     /**
@@ -163,6 +169,8 @@ class EditorElementTest extends TestCase
         ]);
 
         $this->assertStringContainsString('new FileBrowser(', $script);
+        $this->assertStringContainsString("typeof FileBrowser === 'function'", $script);
+        $this->assertStringContainsString('fileBrowser: fileBrowser', $script);
         $this->assertStringContainsString('browseUrl: browseUrl', $script);
         $this->assertStringContainsString('\/admin\/file-manager\/browse-images', $script);
         $this->assertStringContainsString('filesBrowseUrl: filesBrowseUrl', $script);
