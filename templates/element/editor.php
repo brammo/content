@@ -71,7 +71,6 @@ $labels = [
     'indent' => __d('brammo/content', 'Increase indent'),
     'outdent' => __d('brammo/content', 'Decrease indent'),
     'link' => __d('brammo/content', 'Insert link'),
-    'unlink' => __d('brammo/content', 'Remove link'),
     'linkRemove' => __d('brammo/content', 'Remove link'),
     'linkDialogTitle' => __d('brammo/content', 'Insert link'),
     'linkEditTitle' => __d('brammo/content', 'Edit link'),

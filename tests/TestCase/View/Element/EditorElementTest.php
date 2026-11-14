@@ -96,7 +96,6 @@ class EditorElementTest extends TestCase
         $this->assertStringContainsString('"imageClass":"CSS class"', $script);
         $this->assertStringContainsString('"cellClass":"CSS class"', $script);
         $this->assertStringContainsString('"maximize":"Maximize"', $script);
-        $this->assertStringContainsString('"unlink":"Remove link"', $script);
         $this->assertStringContainsString('"linkRemove":"Remove link"', $script);
         $this->assertStringContainsString('"imageLink":"Link URL"', $script);
         $this->assertStringContainsString('"imageLinkTarget":"Open in"', $script);

@@ -33,7 +33,7 @@ Bold and Italic write `<strong>` and `<em>`, from the toolbar and from Ctrl+B / 
 
 Clear formatting works on the selection: it removes inline formatting (bold, italic, spans, fonts) and the styles, classes, and other attributes of the blocks the selection touches, without moving content. With nothing selected it asks first, then strips styles, classes, and spans from the whole document and keeps bold, italic, and underline. It never removes content such as iframes or comments.
 
-The Remove link button unwraps the link at the caret, or every link in the selection, and keeps its content. The link dialog has a Remove link button when editing, and saving it with an empty URL also removes the link. With an image selected, the Link button links the image and hides the Text field. Linking selected text keeps its formatting as long as the Text field is left unchanged; typing a different text replaces the selection with that text.
+To remove a link, put the caret in it and open the link dialog: its Remove link button unwraps the link and keeps its content, and saving the dialog with an empty URL does the same. There is no separate Remove link toolbar button. With an image selected, the Link button links the image and hides the Text field. Linking selected text keeps its formatting as long as the Text field is left unchanged; typing a different text replaces the selection with that text.
 
 Format HTML (in source mode) indents block tags. A block holding only inline content stays on one line when it fits 120 characters; otherwise its content goes on its own indented line. Whitespace between tags collapses to one space, and `<pre>`, `<textarea>`, `<script>` and `<style>` content is kept as is, so formatting twice gives the same result.
 

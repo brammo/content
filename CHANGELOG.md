@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HTML editor** - Esc, then Tab or Shift+Tab, moves focus out of the editor; the editing area announces this hint and is named by the field's label
 - **HTML editor** - Per-field settings with `data-editor-height`, `data-editor-table-class`, `data-editor-status-bar`, and `data-editor-clean-on-paste` on the textarea
 
+### Removed
+
+- **HTML editor** - Remove link toolbar button and its `unlink` label. Remove a link with the Remove link button in the link dialog
+
 ### Changed
 
 - **HTML editor** - Bold and Italic (buttons and Ctrl+B / Ctrl+I) write `<strong>` and `<em>` instead of `<b>` and `<i>`. Existing `<b>` / `<i>` without attributes are converted on the next edit
