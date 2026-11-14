@@ -12,6 +12,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HTML editor** - Increase / Decrease indent buttons. In a list they nest the item into a sub-list or move it up a level (a top-level item becomes a paragraph); other blocks get `margin-left` in 40px steps
 - **HTML editor** - Tab / Shift+Tab indent and outdent outside tables; Shift+Tab with nothing to outdent moves focus out of the editor
 
+### Changed
+
+- **HTML editor** - Clear formatting on a selection also removes bold, italic, and other inline formatting, and cleans the selected blocks in place. On the whole document it no longer deletes iframes, forms, SVG, or comments, and keeps `&nbsp;`
+- **HTML editor** - A table inserted from inside a paragraph, heading, or preformatted block goes after that block instead of inside it
+- **HTML editor** - `formaction` and `form` attributes are removed from loaded content. Form fields in the content are left out of the surrounding form's data, content buttons and forms cannot submit it, and content `<style>` elements are switched off while editing
+
+### Fixed
+
+- **HTML editor** - Ctrl+Z pressed right after typing undid two steps and lost the latest text
+- **HTML editor** - Clear formatting on a selection across paragraphs nested the paragraphs
+- **HTML editor** - Format HTML changed attribute values containing `>`, indented everything after a self-closing tag with attributes, and split `label`, `button`, and similar inline elements onto their own lines
+- **HTML editor** - Adding a column to a header row made a data cell, adding a row next to the header row made a second header row, and saving Table properties unchanged reset header cells
+- **HTML editor** - Saving the image or link dialog dropped a link target it could not show (for example `_top` on an image link)
+- **HTML editor** - A new image could be inserted at the start of the content after typing in the image dialog; the caret position is now saved when the dialog opens
+- **HTML editor** - A selection ending at the start of the next block (triple click) also aligned, indented, merged, or unlinked that next block
+- **HTML editor** - An image selected with the keyboard was not recognised, and a removed image could still open the Edit image dialog
+- **HTML editor** - Link and image dialogs focus their URL field when they open
+
 ## [1.7.0] - 2026-10-30
 
 ### Added

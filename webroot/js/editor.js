@@ -129,12 +129,24 @@ const HtmlEditor = (function() {
         code: true, data: true, dfn: true, em: true, i: true, img: true, kbd: true,
         mark: true, q: true, s: true, samp: true, small: true, span: true,
         strong: true, sub: true, sup: true, time: true, u: true, var: true, wbr: true,
-        del: true, ins: true, strike: true,
+        del: true, ins: true, strike: true, label: true, button: true, input: true,
+        select: true, textarea: true, iframe: true, font: true, big: true, tt: true,
+        nobr: true, acronym: true, output: true, meter: true, progress: true,
+        ruby: true, rt: true, rp: true, audio: true, video: true, canvas: true,
+        picture: true, svg: true, math: true, map: true, object: true, embed: true,
     };
 
     const PRESERVE_TAGS = {
         pre: true, textarea: true, script: true, style: true,
     };
+
+    // Attributes of a tag up to its closing ">"; a ">" inside a quoted value does not end the tag
+    const TAG_ATTRS = '(?:[\\s/](?:[^>"\']|"[^"]*"|\'[^\']*\')*)?';
+    const FORMAT_TAG_RE = new RegExp('^<\\/?([a-zA-Z][\\w:-]*)' + TAG_ATTRS + '>');
+    const LINE_OPEN_TAG_RE = new RegExp('<([a-zA-Z][\\w:-]*)' + TAG_ATTRS + '>\\s*$');
+
+    // Blocks that cannot hold a table: the HTML parser would move it out when the content is reloaded
+    const TABLE_HOST_BLOCKED_TAGS = ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'PRE'];
 
     /**
      * @param {string} text
@@ -331,12 +343,12 @@ const HtmlEditor = (function() {
                     continue;
                 }
 
-                const tagMatch = source.slice(i).match(/^<\/?([a-zA-Z][\w:-]*)((?:\s[^>]*)?)(\/?)>/);
+                const tagMatch = source.slice(i).match(FORMAT_TAG_RE);
                 if (tagMatch) {
                     const full = tagMatch[0];
                     const name = tagMatch[1].toLowerCase();
                     const isClose = full[1] === '/';
-                    const selfClosing = tagMatch[3] === '/' || VOID_TAGS[name];
+                    const selfClosing = /\/>$/.test(full) || VOID_TAGS[name];
                     let type = 'open';
                     if (isClose) {
                         type = 'close';
@@ -609,11 +621,95 @@ const HtmlEditor = (function() {
             Array.prototype.slice.call(el.attributes).forEach(function(attr) {
                 const name = attr.name.toLowerCase();
                 const unsafeUrl = URL_ATTRS[name] && !isSafeUrl(attr.value, tag === 'IMG' && name === 'src');
-                if (name.indexOf('on') === 0 || name === 'srcdoc' || unsafeUrl) {
+                // formaction and form would let content submit or join the form around the editor
+                if (
+                    name.indexOf('on') === 0 || name === 'srcdoc' || name === 'formaction' ||
+                    name === 'form' || unsafeUrl
+                ) {
                     el.removeAttribute(attr.name);
                 }
             });
         });
+    }
+
+    /**
+     * Set a select's value, adding a temporary option when the value is not one of its options,
+     * so saving a dialog does not drop a value it cannot show.
+     *
+     * @param {HTMLSelectElement} select
+     * @param {string} value
+     */
+    function setSelectValue(select, value) {
+        Array.prototype.slice.call(select.querySelectorAll('option[data-custom]')).forEach(function(option) {
+            option.parentNode.removeChild(option);
+        });
+
+        const known = Array.prototype.some.call(select.options, function(option) {
+            return option.value === value;
+        });
+        if (value && !known) {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = value;
+            option.dataset.custom = '1';
+            select.appendChild(option);
+        }
+
+        select.value = value;
+    }
+
+    /**
+     * Values a form field adds to its form's data. Submit and image buttons add nothing unless
+     * they submit the form, which content buttons cannot do.
+     *
+     * @param {HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement} control
+     * @returns {Array<string|File>}
+     */
+    function controlEntryValues(control) {
+        if (control.nodeName === 'SELECT') {
+            return Array.prototype.filter.call(control.options, function(option) {
+                return option.selected && !option.disabled;
+            }).map(function(option) {
+                return option.value;
+            });
+        }
+
+        if (control.nodeName === 'TEXTAREA') {
+            return [control.value];
+        }
+
+        const type = (control.type || '').toLowerCase();
+        if (type === 'checkbox' || type === 'radio') {
+            return control.checked ? [control.value] : [];
+        }
+        if (type === 'file') {
+            // An empty file field still adds one empty file entry
+            return control.files && control.files.length ? Array.prototype.slice.call(control.files) : [''];
+        }
+        if (type === 'submit' || type === 'image' || type === 'button' || type === 'reset') {
+            return [];
+        }
+
+        return [control.value];
+    }
+
+    /**
+     * @param {string|File} entry Value from the form data
+     * @param {string|File} value Value expected from a field
+     * @returns {boolean}
+     */
+    function sameEntryValue(entry, value) {
+        if (typeof entry === 'string') {
+            return typeof value === 'string' &&
+                entry.replace(/\r\n?/g, '\n') === value.replace(/\r\n?/g, '\n');
+        }
+        if (typeof value === 'string') {
+            // The empty entry of a file field without files
+            return value === '' && entry.name === '' && entry.size === 0;
+        }
+
+        return entry === value ||
+            (entry.name === value.name && entry.size === value.size && entry.lastModified === value.lastModified);
     }
 
     /**
@@ -675,6 +771,7 @@ const HtmlEditor = (function() {
         this.onSourceInput = this.onSourceInput.bind(this);
         this.onSourceScroll = this.onSourceScroll.bind(this);
         this.onMaximizedKeyDown = this.onMaximizedKeyDown.bind(this);
+        this.onFormData = this.onFormData.bind(this);
 
         window.BrammoEditor.instances[this.id] = this;
         this.init();
@@ -790,7 +887,16 @@ const HtmlEditor = (function() {
             if (img && this.body.contains(img)) {
                 this.selectedImage = img;
             }
+            // Buttons in the content must not submit or reset the form around the editor
+            const control = e.target.closest('button, input[type="submit"], input[type="image"], input[type="reset"]');
+            if (control && this.body.contains(control)) {
+                e.preventDefault();
+            }
         }.bind(this));
+        // Nor may a form in the content submit itself and leave the page
+        this.body.addEventListener('submit', function(e) {
+            e.preventDefault();
+        });
         this.body.addEventListener('dblclick', function(e) {
             if (this.sourceMode) {
                 return;
@@ -820,8 +926,10 @@ const HtmlEditor = (function() {
         if (this.form) {
             this.onSubmit = this.sync.bind(this);
             this.form.addEventListener('submit', this.onSubmit);
+            this.form.addEventListener('formdata', this.onFormData);
         }
 
+        this.disableContentStyles();
         this.setDefaultBlock();
         this.historyReset();
         this.refreshToolbarState();
@@ -1295,21 +1403,35 @@ const HtmlEditor = (function() {
     };
 
     HtmlEditor.prototype.historyUndo = function() {
-        if (this.sourceMode || this.historyIndex <= 0) {
+        if (this.sourceMode) {
             return;
         }
 
-        this.cancelHistoryCommit();
+        // Typing that still waits for its debounced commit becomes its own step first
+        if (this.historyTimer) {
+            this.commitHistory();
+        }
+        if (this.historyIndex <= 0) {
+            return;
+        }
+
         this.historyIndex--;
         this.applyHistory(this.history[this.historyIndex]);
     };
 
     HtmlEditor.prototype.historyRedo = function() {
-        if (this.sourceMode || this.historyIndex >= this.history.length - 1) {
+        if (this.sourceMode) {
             return;
         }
 
-        this.cancelHistoryCommit();
+        // Uncommitted typing is a new step, which leaves nothing to redo
+        if (this.historyTimer) {
+            this.commitHistory();
+        }
+        if (this.historyIndex >= this.history.length - 1) {
+            return;
+        }
+
         this.historyIndex++;
         this.applyHistory(this.history[this.historyIndex]);
     };
@@ -1337,6 +1459,12 @@ const HtmlEditor = (function() {
      */
     HtmlEditor.prototype.onKeyDown = function(e) {
         if (this.sourceMode || this.destroyed) {
+            return;
+        }
+
+        // Enter in a text field that is part of the content would submit the form around the editor
+        if (e.key === 'Enter' && e.target !== this.body && e.target.nodeName === 'INPUT') {
+            e.preventDefault();
             return;
         }
 
@@ -1643,6 +1771,47 @@ const HtmlEditor = (function() {
     };
 
     /**
+     * Selection range inside the editing area, or null.
+     * A selection that ends at the very start of a block (a triple click selects up to the next
+     * block) is cut back to end before that block, so commands do not reach into it.
+     *
+     * @returns {Range|null}
+     */
+    HtmlEditor.prototype.getSelectionRange = function() {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+            return null;
+        }
+
+        const range = selection.getRangeAt(0);
+        if (!this.body.contains(range.commonAncestorContainer)) {
+            return null;
+        }
+        if (range.collapsed) {
+            return range;
+        }
+
+        let node = range.endContainer;
+        let offset = range.endOffset;
+        let block = null;
+        while (offset === 0 && node !== this.body && node.parentNode) {
+            if (BLOCK_TAGS.includes(node.nodeName) || node.nodeName === 'TD' || node.nodeName === 'TH') {
+                block = node;
+            }
+            offset = Array.prototype.indexOf.call(node.parentNode.childNodes, node);
+            node = node.parentNode;
+        }
+        if (!block) {
+            return range;
+        }
+
+        const trimmed = range.cloneRange();
+        trimmed.setEndBefore(block);
+
+        return trimmed.collapsed ? range : trimmed;
+    };
+
+    /**
      * @returns {HTMLElement|null}
      */
     HtmlEditor.prototype.getAlignmentBlock = function() {
@@ -1656,13 +1825,8 @@ const HtmlEditor = (function() {
      * @returns {Array<HTMLElement>}
      */
     HtmlEditor.prototype.getAlignmentBlocks = function() {
-        const selection = window.getSelection();
-        if (!selection || selection.rangeCount === 0) {
-            return [];
-        }
-
-        const range = selection.getRangeAt(0);
-        if (!this.body.contains(range.commonAncestorContainer)) {
+        const range = this.getSelectionRange();
+        if (!range) {
             return [];
         }
 
@@ -1774,13 +1938,8 @@ const HtmlEditor = (function() {
      */
     HtmlEditor.prototype.getIndentTargets = function() {
         const empty = { items: [], blocks: [] };
-        const selection = window.getSelection();
-        if (!selection || selection.rangeCount === 0) {
-            return empty;
-        }
-
-        const range = selection.getRangeAt(0);
-        if (!this.body.contains(range.commonAncestorContainer)) {
+        const range = this.getSelectionRange();
+        if (!range) {
             return empty;
         }
 
@@ -1790,8 +1949,12 @@ const HtmlEditor = (function() {
                 selected.push(li);
             }
         };
-        add(this.closestInBody(range.startContainer, ['LI']));
-        add(this.closestInBody(range.endContainer, ['LI']));
+        // A boundary in the list itself sits between items, so it selects none of them
+        [range.startContainer, range.endContainer].forEach(function(container) {
+            if (container.nodeName !== 'UL' && container.nodeName !== 'OL') {
+                add(this.closestInBody(container, ['LI']));
+            }
+        }, this);
 
         // An item counts only when the range touches its own content, not just a nested list
         this.body.querySelectorAll('li').forEach(function(li) {
@@ -2403,30 +2566,38 @@ const HtmlEditor = (function() {
         }
 
         this.focusBody();
-        const selection = window.getSelection();
         const labels = this.options.labels || {};
+        const self = this;
 
-        if (selection && selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            if (this.body.contains(range.commonAncestorContainer) && !range.collapsed) {
-                const fragment = range.extractContents();
-                this.cleanFragment(fragment);
-                const first = fragment.firstChild;
-                const last = fragment.lastChild;
-                range.insertNode(fragment);
+        const selected = this.getSelectionRange();
+        if (selected && !selected.collapsed) {
+            // The browser splits partly selected inline formatting (bold, italic, spans) itself
+            document.execCommand('removeFormat', false, null);
 
-                if (first && last) {
-                    range.setStartBefore(first);
-                    range.setEndAfter(last);
-                    selection.removeAllRanges();
-                    selection.addRange(range);
-                }
-
-                this.sync();
-                this.commitHistory();
-                this.refreshToolbarState();
-                return;
+            // Then clean, in place, the elements the selection touches. Moving the selected
+            // content out and back would nest paragraphs.
+            const range = this.getSelectionRange() || selected;
+            let root = range.commonAncestorContainer;
+            if (root.nodeType !== Node.ELEMENT_NODE) {
+                root = root.parentNode;
             }
+            if (root && this.body.contains(root)) {
+                Array.prototype.slice.call(root.querySelectorAll('*')).filter(function(el) {
+                    try {
+                        return range.intersectsNode(el);
+                    } catch (e) {
+                        return false;
+                    }
+                }).forEach(function(el) {
+                    self.clearElementFormatting(el, false);
+                });
+                root.normalize();
+            }
+
+            this.sync();
+            this.commitHistory();
+            this.refreshToolbarState();
+            return;
         }
 
         const message = labels.clearFormatConfirm || 'Clear formatting from the entire document?';
@@ -2434,10 +2605,40 @@ const HtmlEditor = (function() {
             return;
         }
 
-        this.cleanFragment(this.body);
+        Array.prototype.slice.call(this.body.querySelectorAll('*')).forEach(function(el) {
+            self.clearElementFormatting(el, true);
+        });
+        this.body.normalize();
         this.sync();
         this.commitHistory();
         this.refreshToolbarState();
+    };
+
+    /**
+     * Remove presentation from one element without removing content: spans and font tags are
+     * unwrapped, known tags lose their styles and classes, anything else (iframes, forms, SVG)
+     * is left alone.
+     *
+     * @param {Element} el
+     * @param {boolean} promote Keep bold, italic, and underline set by inline styles as tags
+     */
+    HtmlEditor.prototype.clearElementFormatting = function(el, promote) {
+        if (!el.parentNode) {
+            return;
+        }
+
+        const tag = el.nodeName.toUpperCase();
+        if (tag === 'SPAN' || tag === 'FONT') {
+            if (promote) {
+                this.promoteInlineStyles(el);
+            }
+            this.unwrapNode(el);
+            return;
+        }
+
+        if (CLEAN_KEEP_TAGS[tag] && el.namespaceURI === 'http://www.w3.org/1999/xhtml') {
+            this.stripAttributes(el);
+        }
     };
 
     /**
@@ -2523,13 +2724,8 @@ const HtmlEditor = (function() {
             return [link];
         }
 
-        const selection = window.getSelection();
-        if (!selection || selection.rangeCount === 0) {
-            return [];
-        }
-
-        const range = selection.getRangeAt(0);
-        if (range.collapsed || !this.body.contains(range.commonAncestorContainer)) {
+        const range = this.getSelectionRange();
+        if (!range || range.collapsed) {
             return [];
         }
 
@@ -2712,6 +2908,18 @@ const HtmlEditor = (function() {
 
         const range = selection.getRangeAt(0);
 
+        // A selected image is a range around it in its parent, not a range inside the image
+        if (
+            range.startContainer === range.endContainer &&
+            range.startContainer.nodeType === Node.ELEMENT_NODE &&
+            range.endOffset - range.startOffset === 1
+        ) {
+            const only = range.startContainer.childNodes[range.startOffset];
+            if (only && only.nodeName === 'IMG' && this.body.contains(only)) {
+                return only;
+            }
+        }
+
         if (range.startContainer.nodeName === 'IMG' && this.body.contains(range.startContainer)) {
             return range.startContainer;
         }
@@ -2756,7 +2964,10 @@ const HtmlEditor = (function() {
             return img;
         }
 
-        return this.getImageAtSelection() || this.selectedImage;
+        // The remembered image may be gone after undo, source mode, or deletion
+        const found = this.getImageAtSelection() || this.selectedImage;
+
+        return found && this.body.contains(found) ? found : null;
     };
 
     /**
@@ -2938,16 +3149,26 @@ const HtmlEditor = (function() {
         const img = document.createElement('img');
         this.applyImageProperties(img, props);
 
+        // Typing in the dialog moves the selection out of the editor, so use the one saved on open
         const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
+        let range = null;
+        if (this.savedSelection) {
+            range = this.savedSelection.cloneRange();
+            this.clearSavedSelection();
+        } else if (selection && selection.rangeCount > 0) {
+            range = selection.getRangeAt(0).cloneRange();
+        }
+
+        if (range && this.body.contains(range.commonAncestorContainer)) {
             range.deleteContents();
             range.insertNode(img);
             this.setImageLink(img, props.linkUrl, props.linkTarget);
             range.setStartAfter(this.getImageLink(img) || img);
             range.collapse(true);
-            selection.removeAllRanges();
-            selection.addRange(range);
+            if (selection) {
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
         } else {
             this.body.appendChild(img);
             this.setImageLink(img, props.linkUrl, props.linkTarget);
@@ -3165,6 +3386,7 @@ const HtmlEditor = (function() {
                 editor.imageDialogOpen = false;
                 editor.imageBrowseEmbedded = false;
                 editor.editingImage = null;
+                editor.clearSavedSelection();
                 editor.showImageFormView();
             }
             window.BrammoEditor.activeImageEditor = null;
@@ -3207,21 +3429,25 @@ const HtmlEditor = (function() {
         const imageModal = this.ensureImageModal();
         window.BrammoEditor.activeImageEditor = this;
         this.imageDialogOpen = true;
+        this.clearSavedSelection();
         this.editingImage = this.resolveEditingImage(img);
         this.showImageFormView();
         imageModal.form.reset();
+        setSelectValue(imageModal.form.elements.linkTarget, '');
 
         if (this.editingImage) {
             const props = this.getImageProperties(this.editingImage);
             imageModal.form.elements.src.value = props.src;
             imageModal.form.elements.alt.value = props.alt;
             imageModal.form.elements.linkUrl.value = props.linkUrl;
-            imageModal.form.elements.linkTarget.value = props.linkTarget === '_blank' ? '_blank' : '';
+            setSelectValue(imageModal.form.elements.linkTarget, props.linkTarget);
             imageModal.form.elements.width.value = props.width;
             imageModal.form.elements.height.value = props.height;
             imageModal.form.elements.align.value = props.align;
             imageModal.form.elements.cssClass.value = props.cssClass;
             imageModal.form.elements.styles.value = props.styles;
+        } else {
+            this.saveSelection();
         }
 
         this.updateImageModalLabels();
@@ -3230,8 +3456,11 @@ const HtmlEditor = (function() {
         }
 
         if (imageModal.modal) {
+            // The input cannot take focus until the modal is displayed
+            imageModal.element.addEventListener('shown.bs.modal', function() {
+                imageModal.form.elements.src.focus();
+            }, { once: true });
             imageModal.modal.show();
-            imageModal.form.elements.src.focus();
         }
     };
 
@@ -3532,13 +3761,14 @@ const HtmlEditor = (function() {
         }
         this.showLinkFormView();
         linkModal.form.reset();
+        setSelectValue(linkModal.form.elements.target, '');
 
         if (this.editingLink) {
             const props = this.getLinkProperties(this.editingLink);
             linkModal.form.elements.url.value = props.url;
             linkModal.form.elements.text.value = props.text;
             linkModal.form.elements.title.value = props.title;
-            linkModal.form.elements.target.value = props.target;
+            setSelectValue(linkModal.form.elements.target, props.target);
         } else if (!this.linkImage) {
             linkModal.form.elements.text.value = this.getSelectedText();
             this.saveSelection();
@@ -3554,8 +3784,11 @@ const HtmlEditor = (function() {
         }
 
         if (linkModal.modal) {
+            // The input cannot take focus until the modal is displayed
+            linkModal.element.addEventListener('shown.bs.modal', function() {
+                linkModal.form.elements.url.focus();
+            }, { once: true });
             linkModal.modal.show();
-            linkModal.form.elements.url.focus();
         }
     };
 
@@ -3710,6 +3943,64 @@ const HtmlEditor = (function() {
     };
 
     /**
+     * True when a row or column has cells and all of them are header cells.
+     *
+     * @param {Array<HTMLTableCellElement|null|undefined>} cells
+     * @returns {boolean}
+     */
+    HtmlEditor.prototype.isHeaderLine = function(cells) {
+        const present = cells.filter(Boolean);
+
+        return present.length > 0 && present.every(function(cell) {
+            return cell.tagName === 'TH';
+        });
+    };
+
+    /**
+     * Whether the first row and the first column are made of header cells.
+     *
+     * @param {HTMLTableElement} table
+     * @returns {{headerRow: boolean, headerColumn: boolean}}
+     */
+    HtmlEditor.prototype.getTableHeaderState = function(table) {
+        const rows = Array.prototype.slice.call(table.rows);
+        if (!rows.length) {
+            return { headerRow: false, headerColumn: false };
+        }
+
+        return {
+            headerRow: this.isHeaderLine(Array.prototype.slice.call(rows[0].cells)),
+            headerColumn: rows.every(function(tr) {
+                return tr.cells[0] && tr.cells[0].tagName === 'TH';
+            }),
+        };
+    };
+
+    /**
+     * Replace a cell with a th or td that keeps its attributes and content.
+     *
+     * @param {HTMLTableCellElement} cell
+     * @param {string} tagName 'th' or 'td'
+     * @returns {HTMLTableCellElement} The cell now in the table
+     */
+    HtmlEditor.prototype.replaceCellTag = function(cell, tagName) {
+        if (cell.tagName === tagName.toUpperCase() || !cell.parentNode) {
+            return cell;
+        }
+
+        const replacement = document.createElement(tagName);
+        Array.prototype.slice.call(cell.attributes).forEach(function(attr) {
+            replacement.setAttribute(attr.name, attr.value);
+        });
+        while (cell.firstChild) {
+            replacement.appendChild(cell.firstChild);
+        }
+        cell.parentNode.replaceChild(replacement, cell);
+
+        return replacement;
+    };
+
+    /**
      * @param {HTMLTableElement} table
      * @param {HTMLTableCellElement} cell
      * @returns {{row: number, col: number}|null}
@@ -3730,14 +4021,9 @@ const HtmlEditor = (function() {
      * @returns {Array<HTMLTableCellElement>}
      */
     HtmlEditor.prototype.getSelectedCells = function() {
-        const selection = window.getSelection();
         const table = this.getTableAtSelection();
-        if (!table || !selection || selection.rangeCount === 0) {
-            return [];
-        }
-
-        const range = selection.getRangeAt(0);
-        if (!this.body.contains(range.commonAncestorContainer)) {
+        const range = this.getSelectionRange();
+        if (!table || !range) {
             return [];
         }
 
@@ -3839,7 +4125,16 @@ const HtmlEditor = (function() {
             if (!range.collapsed) {
                 range.deleteContents();
             }
-            range.insertNode(table);
+            // A table inside a paragraph or heading is invalid HTML and is moved out on reload,
+            // so it goes after that block, or replaces the block when it is empty
+            const block = this.closestInBody(range.startContainer, TABLE_HOST_BLOCKED_TAGS);
+            if (block && this.isEmptyBlock(block)) {
+                block.parentNode.replaceChild(table, block);
+            } else if (block) {
+                block.parentNode.insertBefore(table, block.nextSibling);
+            } else {
+                range.insertNode(table);
+            }
         } else {
             this.body.appendChild(table);
         }
@@ -3887,15 +4182,37 @@ const HtmlEditor = (function() {
         const rowspan = parseInt(cell.getAttribute('rowspan') || '1', 10) || 1;
         const targetRow = before ? pos.row : pos.row + rowspan - 1;
         const insertAt = before ? targetRow : targetRow + 1;
-        const refRow = table.rows[Math.min(targetRow, table.rows.length - 1)];
+        const refIndex = Math.min(targetRow, table.rows.length - 1);
+        const refRow = table.rows[refIndex];
         if (!refRow) {
             return;
         }
 
+        // A row added next to the header row must not become a second header row: take the cell
+        // types from the row on the other side, or keep only header columns
+        const matrix = this.buildTableMatrix(table);
+        const self = this;
+        const refIsHeader = this.isHeaderLine(Array.prototype.slice.call(refRow.cells));
+        const otherIndex = before ? refIndex - 1 : refIndex + 1;
+        const otherRow = table.rows[otherIndex];
+        const useOther = !!otherRow && !this.isHeaderLine(Array.prototype.slice.call(otherRow.cells));
+
         const newRow = document.createElement('tr');
         Array.prototype.slice.call(refRow.cells).forEach(function(refCell) {
             const colspan = parseInt(refCell.getAttribute('colspan') || '1', 10) || 1;
-            const newCell = document.createElement(refCell.tagName === 'TH' ? 'th' : 'td');
+            let header = refCell.tagName === 'TH';
+            if (refIsHeader) {
+                const col = (matrix[refIndex] || []).indexOf(refCell);
+                if (useOther) {
+                    const other = (matrix[otherIndex] || [])[col];
+                    header = !!other && other.tagName === 'TH';
+                } else {
+                    header = matrix.length > 1 && self.isHeaderLine(matrix.map(function(row) {
+                        return row[col];
+                    }));
+                }
+            }
+            const newCell = document.createElement(header ? 'th' : 'td');
             if (colspan > 1) {
                 newCell.setAttribute('colspan', String(colspan));
             }
@@ -3936,6 +4253,19 @@ const HtmlEditor = (function() {
         const insertAt = before ? targetCol : targetCol + 1;
         const seen = [];
 
+        // Mirror of insertTableRow: a column added next to the header column must not become
+        // a second header column, and a column added to a header row stays a header there
+        const self = this;
+        const column = function(col) {
+            return matrix.map(function(row) {
+                return row[col];
+            });
+        };
+        const refIsHeader = this.isHeaderLine(column(targetCol));
+        const otherCol = before ? targetCol - 1 : targetCol + 1;
+        const otherCells = column(otherCol).filter(Boolean);
+        const useOther = otherCol >= 0 && otherCells.length > 0 && !this.isHeaderLine(otherCells);
+
         Array.prototype.slice.call(table.rows).forEach(function(tr, rowIndex) {
             const rowMatrix = matrix[rowIndex] || [];
             let insertBeforeNode = null;
@@ -3964,7 +4294,20 @@ const HtmlEditor = (function() {
                 return;
             }
 
-            const newCell = document.createElement('td');
+            const refCell = rowMatrix[targetCol];
+            let header = !!refCell && refCell.tagName === 'TH';
+            if (refIsHeader) {
+                if (useOther) {
+                    header = !!rowMatrix[otherCol] && rowMatrix[otherCol].tagName === 'TH';
+                } else {
+                    const rowCells = rowMatrix.filter(function(cell, index) {
+                        return cell && rowMatrix.indexOf(cell) === index;
+                    });
+                    header = rowCells.length > 1 && self.isHeaderLine(rowCells);
+                }
+            }
+
+            const newCell = document.createElement(header ? 'th' : 'td');
             newCell.innerHTML = '<br>';
             if (insertBeforeNode && insertBeforeNode.parentNode === tr) {
                 tr.insertBefore(newCell, insertBeforeNode);
@@ -4271,22 +4614,13 @@ const HtmlEditor = (function() {
         }
 
         const firstRow = table.rows[0];
-        let headerRow = false;
-        let headerColumn = false;
-        if (firstRow) {
-            headerRow = Array.prototype.every.call(firstRow.cells, function(c) {
-                return c.tagName === 'TH';
-            });
-            headerColumn = Array.prototype.every.call(table.rows, function(tr) {
-                return tr.cells[0] && tr.cells[0].tagName === 'TH';
-            });
-        }
+        const header = this.getTableHeaderState(table);
 
         return {
             rows: table.rows.length,
             cols: firstRow ? firstRow.cells.length : 0,
-            headerRow: headerRow,
-            headerColumn: headerColumn,
+            headerRow: header.headerRow,
+            headerColumn: header.headerColumn,
             caption: caption ? caption.textContent : '',
             width: table.style.width || '',
             align: align,
@@ -4350,24 +4684,24 @@ const HtmlEditor = (function() {
             table.removeAttribute('style');
         }
 
-        if (typeof props.headerRow === 'boolean' || typeof props.headerColumn === 'boolean') {
-            const headerRow = !!props.headerRow;
-            const headerColumn = !!props.headerColumn;
+        // Retag only the row or column whose checkbox changed, so saving the dialog untouched
+        // keeps cell types that were set one by one
+        const current = this.getTableHeaderState(table);
+        const headerRow = typeof props.headerRow === 'boolean' ? props.headerRow : current.headerRow;
+        const headerColumn = typeof props.headerColumn === 'boolean' ? props.headerColumn : current.headerColumn;
+        const rowChanged = headerRow !== current.headerRow;
+        const columnChanged = headerColumn !== current.headerColumn;
+        if (rowChanged || columnChanged) {
+            const self = this;
             Array.prototype.slice.call(table.rows).forEach(function(tr, rowIndex) {
                 Array.prototype.slice.call(tr.cells).forEach(function(cell, colIndex) {
-                    const wantTh = (headerRow && rowIndex === 0) || (headerColumn && colIndex === 0);
-                    const wantTag = wantTh ? 'TH' : 'TD';
-                    if (cell.tagName === wantTag) {
+                    const inRow = rowIndex === 0;
+                    const inColumn = colIndex === 0;
+                    if (!(rowChanged && inRow) && !(columnChanged && inColumn)) {
                         return;
                     }
-                    const replacement = document.createElement(wantTag.toLowerCase());
-                    Array.prototype.slice.call(cell.attributes).forEach(function(attr) {
-                        replacement.setAttribute(attr.name, attr.value);
-                    });
-                    while (cell.firstChild) {
-                        replacement.appendChild(cell.firstChild);
-                    }
-                    cell.parentNode.replaceChild(replacement, cell);
+                    const wantTh = (headerRow && inRow) || (headerColumn && inColumn);
+                    self.replaceCellTag(cell, wantTh ? 'th' : 'td');
                 });
             });
         }
@@ -4437,20 +4771,7 @@ const HtmlEditor = (function() {
             cell.removeAttribute('class');
         }
 
-        const wantType = (props.cellType || 'td').toLowerCase() === 'th' ? 'TH' : 'TD';
-        if (cell.tagName !== wantType) {
-            const replacement = document.createElement(wantType.toLowerCase());
-            Array.prototype.slice.call(cell.attributes).forEach(function(attr) {
-                replacement.setAttribute(attr.name, attr.value);
-            });
-            while (cell.firstChild) {
-                replacement.appendChild(cell.firstChild);
-            }
-            cell.parentNode.replaceChild(replacement, cell);
-            return replacement;
-        }
-
-        return cell;
+        return this.replaceCellTag(cell, (props.cellType || 'td').toLowerCase() === 'th' ? 'th' : 'td');
     };
 
     HtmlEditor.prototype.ensureTableModal = function() {
@@ -5133,7 +5454,7 @@ const HtmlEditor = (function() {
         const leading = (lineBefore.match(/^[ \t]*/) || [''])[0];
         let indent = leading;
 
-        const openMatch = lineBefore.match(/<([a-zA-Z][\w:-]*)\b[^>]*>\s*$/);
+        const openMatch = lineBefore.match(LINE_OPEN_TAG_RE);
         if (openMatch) {
             const tag = openMatch[1].toLowerCase();
             const isSelfClosing = /\/\s*>\s*$/.test(openMatch[0]) || VOID_TAGS[tag];
@@ -5462,10 +5783,74 @@ const HtmlEditor = (function() {
         template.innerHTML = html;
         sanitizeLoadedFragment(template.content);
         this.body.replaceChildren(template.content);
+        this.disableContentStyles();
+    };
+
+    /**
+     * Switch off style sheets that are part of the content, so they cannot restyle the page
+     * around the editor. The style elements stay in the content unchanged.
+     */
+    HtmlEditor.prototype.disableContentStyles = function() {
+        this.body.querySelectorAll('style').forEach(function(style) {
+            // No sheet until the editing area is in the document; moving a node re-creates it
+            if (style.sheet && !style.sheet.disabled) {
+                style.sheet.disabled = true;
+            }
+        });
+    };
+
+    /**
+     * Keep form fields that are part of the content out of the data of the form around the
+     * editor, so content cannot add to or override the form's own fields.
+     *
+     * @param {FormDataEvent} e
+     */
+    HtmlEditor.prototype.onFormData = function(e) {
+        if (this.destroyed || !this.form || !e.formData) {
+            return;
+        }
+
+        const form = this.form;
+        const controls = Array.prototype.filter.call(
+            this.body.querySelectorAll('input, select, textarea'),
+            function(control) {
+                return control.form === form && control.name && !control.matches(':disabled');
+            }
+        );
+        if (!controls.length) {
+            return;
+        }
+
+        // The entry list cannot be built again from inside this event, so take out, name by name,
+        // one entry for each value a content field added and keep the rest in order
+        const remaining = {};
+        controls.forEach(function(control) {
+            const name = control.name;
+            if (!remaining[name]) {
+                remaining[name] = e.formData.getAll(name);
+            }
+            controlEntryValues(control).forEach(function(value) {
+                const values = remaining[name];
+                for (let i = values.length - 1; i >= 0; i--) {
+                    if (sameEntryValue(values[i], value)) {
+                        values.splice(i, 1);
+                        break;
+                    }
+                }
+            });
+        });
+
+        Object.keys(remaining).forEach(function(name) {
+            e.formData.delete(name);
+            remaining[name].forEach(function(value) {
+                e.formData.append(name, value);
+            });
+        });
     };
 
     HtmlEditor.prototype.sync = function() {
         if (!this.sourceMode) {
+            this.disableContentStyles();
             this.textarea.value = this.body.innerHTML;
         }
     };
@@ -5490,6 +5875,7 @@ const HtmlEditor = (function() {
         document.removeEventListener('selectionchange', this.onSelectionChange);
         if (this.form && this.onSubmit) {
             this.form.removeEventListener('submit', this.onSubmit);
+            this.form.removeEventListener('formdata', this.onFormData);
         }
         if (this.body) {
             this.body.removeEventListener('keydown', this.onKeyDown);
