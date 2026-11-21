@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.9.0] - 2026-11-21
+
 ### Added
 
 - **ImageHelper** - `root` option: absolute folder that source paths and `tempFolder` are relative to (default `null` = webroot). With a folder outside the webroot, originals and thumbnails stay private and can be served by a controller after an access check
