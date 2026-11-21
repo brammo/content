@@ -26,11 +26,27 @@ $this->loadHelper('Brammo/Content.Image', [
 ]);
 ```
 
+Keep images outside the webroot
+
+```php
+$this->loadHelper('Brammo/Content.Image', [
+    'root' => ROOT . DS . 'storage',  // Sources and cache live here, not in webroot
+    'tempFolder' => 'cache',
+]);
+
+$path = $this->Image->crop('images/2026/11/photo.jpg', 300);
+// Returns: /cache/300x300c/images/2026/11/photo.jpg
+// File:    ROOT/storage/cache/300x300c/images/2026/11/photo.jpg
+```
+
+The returned path is relative to `root`, so it is not a URL the browser can load. Serve the file from a controller (for example after checking that the user may see it) with `$this->response->withFile($root . $path)`.
+
 ### Configuration Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `tempFolder` | `/thumb` | Directory to store cached images (relative to webroot). Leading and trailing slashes are normalized |
+| `root` | `null` | Absolute folder that source paths and `tempFolder` are relative to. `null` (or `''`) uses the webroot (`WWW_ROOT`). A trailing slash is optional |
+| `tempFolder` | `/thumb` | Directory to store cached images (relative to `root`). Leading and trailing slashes are normalized |
 | `driver` | `auto` | Image processing driver (`auto`, `gd`, `imagick`, `vips`; case-insensitive). Auto-detection priority: vips > imagick > gd. An unknown name makes every call return the original path |
 | `backgroundColor` | `#ffffff` | Background fill color for the `fit` method (hex code) |
 

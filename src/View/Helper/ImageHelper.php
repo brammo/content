@@ -34,13 +34,17 @@ class ImageHelper extends Helper
     /**
      * Default configuration
      *
-     * - `tempFolder`: Folder to store cached images (relative to webroot)
+     * - `root`: Absolute folder that source paths and `tempFolder` are relative to.
+     *   `null` uses the webroot (`WWW_ROOT`). Set it to a folder outside the webroot to
+     *   keep originals and thumbnails private and serve them from a controller.
+     * - `tempFolder`: Folder to store cached images (relative to `root`)
      * - `driver`: Image processing driver ('gd', 'imagick', 'vips', or 'auto' to detect)
      * - `backgroundColor`: Background color for 'fit' method (hex code)
      *
      * @var array<string, mixed>
      */
     protected array $_defaultConfig = [
+        'root' => null,
         'tempFolder' => '/thumb',
         'driver' => 'auto',
         'backgroundColor' => '#ffffff',
@@ -59,7 +63,7 @@ class ImageHelper extends Helper
      *
      * Cache path format: {tempFolder}/{width}x{height}/{filename}
      *
-     * @param string $path Path to image relative to webroot
+     * @param string $path Path to image relative to the root (webroot by default)
      * @param int $width Target width
      * @param int|null $height Target height. If null, height will equal width.
      * @param string|null $format Optional output format (jpg, png, gif, webp)
@@ -80,7 +84,7 @@ class ImageHelper extends Helper
      *
      * Cache path format: {tempFolder}/{width}x{height}c/{filename}
      *
-     * @param string $path Path to image relative to webroot
+     * @param string $path Path to image relative to the root (webroot by default)
      * @param int $width Target width
      * @param int|null $height Target height. If null, height will equal width.
      * @param string|null $format Optional output format (jpg, png, gif, webp)
@@ -101,7 +105,7 @@ class ImageHelper extends Helper
      *
      * Cache path format: {tempFolder}/{width}x{height}f/{filename}
      *
-     * @param string $path Path to image relative to webroot
+     * @param string $path Path to image relative to the root (webroot by default)
      * @param int $width Target width
      * @param int|null $height Target height. If null, height will equal width.
      * @param string|null $format Optional output format (jpg, png, gif, webp)
@@ -119,7 +123,7 @@ class ImageHelper extends Helper
     /**
      * Process image with specified method
      *
-     * @param string $path Source image path relative to webroot
+     * @param string $path Source image path relative to the root
      * @param int $width Target width
      * @param int $height Target height
      * @param string $method Processing method (resize, crop, fit)
@@ -128,7 +132,7 @@ class ImageHelper extends Helper
      */
     protected function process(string $path, int $width, int $height, string $method, ?string $format): string
     {
-        // Reject parent-directory segments so reads and cache writes stay inside webroot
+        // Reject parent-directory segments so reads and cache writes stay inside the root
         if (in_array('..', explode('/', str_replace('\\', '/', $path)), true)) {
             return $path;
         }
@@ -266,7 +270,7 @@ class ImageHelper extends Helper
      * @param int $height Target height
      * @param string $method Processing method
      * @param string $format Output format
-     * @return string Cache path relative to webroot
+     * @return string Cache path relative to the root
      */
     protected function getCachePath(
         string $sourcePath,
@@ -397,13 +401,20 @@ class ImageHelper extends Helper
     }
 
     /**
-     * Get webroot path from the WWW_ROOT constant
+     * Get the folder that source and cache paths are relative to
      *
-     * @return string Absolute path to webroot
-     * @throws \RuntimeException If WWW_ROOT is not defined
+     * The `root` option when set, otherwise the WWW_ROOT constant.
+     *
+     * @return string Absolute path without a trailing separator
+     * @throws \RuntimeException If `root` is not set and WWW_ROOT is not defined
      */
     protected function getWebrootPath(): string
     {
+        $root = $this->getConfig('root');
+        if (is_string($root) && $root !== '') {
+            return rtrim($root, '/\\');
+        }
+
         if (!defined('WWW_ROOT')) {
             throw new \RuntimeException('WWW_ROOT constant is not defined.');
         }

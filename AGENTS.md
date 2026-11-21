@@ -47,7 +47,7 @@ composer analyse
 - Source paths and `tempFolder` are normalized to a leading `/`; files in the webroot root cache as `{tempFolder}/{W}x{H}/{name}.{ext}`
 - Write thumbnails to a temp file and `rename()` them into place
 - Paths with `..` segments are returned unchanged; cached files are regenerated when the source is newer
-- Requires `WWW_ROOT` (defined in host app or `tests/test_app/webroot/`)
+- Sources and cache resolve against the `root` option, or `WWW_ROOT` when `root` is `null`/empty (defined in host app or `tests/test_app/webroot/`); the return value is then relative to `root`, not a URL
 - Test fixture: `tests/test_app/webroot/images/test.png` — regenerate with `composer generate-test-image`
 - Tests that force `driver => 'gd'` must skip when `gd` is not loaded (CI has an imagick-only job)
 

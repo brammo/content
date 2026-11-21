@@ -35,6 +35,7 @@ class ImageHelperTest extends TestCase
      */
     public function testDefaultConfiguration(): void
     {
+        $this->assertNull($this->Image->getConfig('root'));
         $this->assertSame('/thumb', $this->Image->getConfig('tempFolder'));
         $this->assertSame('auto', $this->Image->getConfig('driver'));
         $this->assertSame('#ffffff', $this->Image->getConfig('backgroundColor'));
@@ -490,6 +491,86 @@ class ImageHelperTest extends TestCase
             }
             $this->removeEmptyCacheDirs(dirname($cacheFullPath));
         }
+    }
+
+    /**
+     * Test the root option reads sources and writes the cache outside the webroot
+     *
+     * @return void
+     */
+    public function testRootOptionUsesFolderOutsideWebroot(): void
+    {
+        if (!extension_loaded('gd')) {
+            $this->markTestSkipped('GD extension not available.');
+        }
+
+        $root = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'brammo-image-root-' . bin2hex(random_bytes(4));
+        mkdir($root . '/images/2026/11', 0755, true);
+        copy(WWW_ROOT . 'images/test.png', $root . '/images/2026/11/photo.png');
+
+        try {
+            $helper = new ImageHelper(new View(), [
+                'driver' => 'gd',
+                'root' => $root . '/',
+                'tempFolder' => 'cache',
+            ]);
+
+            $result = $helper->crop('images/2026/11/photo.png', 57);
+            $this->assertSame('/cache/57x57c/images/2026/11/photo.png', $result);
+            $this->assertFileExists($root . '/cache/57x57c/images/2026/11/photo.png');
+            $this->assertDirectoryDoesNotExist(WWW_ROOT . 'cache');
+
+            // The webroot fixture is not visible through a custom root
+            $this->assertSame('/images/test.png', $helper->resize('/images/test.png', 57));
+        } finally {
+            $this->removeTree($root);
+        }
+    }
+
+    /**
+     * Test an empty root falls back to the webroot
+     *
+     * @return void
+     */
+    public function testEmptyRootFallsBackToWebroot(): void
+    {
+        if (!extension_loaded('gd')) {
+            $this->markTestSkipped('GD extension not available.');
+        }
+
+        $helper = new ImageHelper(new View(), ['driver' => 'gd', 'root' => '', 'tempFolder' => '/thumb-test']);
+        $cachePath = $helper->resize('/images/test.png', 58);
+        $cacheFullPath = WWW_ROOT . ltrim($cachePath, '/');
+
+        try {
+            $this->assertSame('/thumb-test/58x58/images/test.png', $cachePath);
+            $this->assertFileExists($cacheFullPath);
+        } finally {
+            if (is_file($cacheFullPath)) {
+                unlink($cacheFullPath);
+            }
+            $this->removeEmptyCacheDirs(dirname($cacheFullPath));
+        }
+    }
+
+    /**
+     * @param string $path
+     * @return void
+     */
+    private function removeTree(string $path): void
+    {
+        if (!is_dir($path)) {
+            return;
+        }
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST,
+        );
+        foreach ($items as $item) {
+            /** @var \SplFileInfo $item */
+            $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname());
+        }
+        rmdir($path);
     }
 
     /**
